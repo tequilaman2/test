@@ -150,62 +150,6 @@
       .ar-launch-button:hover {
         background: #0056b3;
       }
-
-      .ar-controls {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        z-index: 2000;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-      }
-
-      .ar-controls.visible {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      .ar-button {
-        width: 50px;
-        height: 50px;
-        border-radius: 25px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        border: 2px solid white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        cursor: pointer;
-        transition: background 0.2s ease, transform 0.2s ease;
-      }
-
-      .ar-button:hover {
-        background: rgba(0, 0, 0, 0.9);
-        transform: scale(1.05);
-      }
-
-      .ar-scale-text {
-        position: fixed;
-        bottom: 80px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 15px;
-        font-size: 14px;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        z-index: 2000;
-      }
-
-      .ar-scale-text.visible {
-        opacity: 1;
-      }
     </style>
   </head>
   <body>
@@ -213,13 +157,6 @@
     <canvas id="qr-canvas"></canvas>
     <div class="loading" id="loading">Загрузка AR...</div>
     <div class="ar-hint" id="ar-hint">Выберите модель внизу экрана</div>
-
-    <div class="ar-controls" id="ar-controls">
-      <div class="ar-button" id="scale-up">+</div>
-      <div class="ar-button" id="scale-down">−</div>
-      <div class="ar-button" id="scale-reset">↺</div>
-    </div>
-    <div class="ar-scale-text" id="ar-scale-text">×1.0</div>
 
     <div class="model-viewer-container">
       <model-viewer 
@@ -251,6 +188,10 @@
         pinch-to-zoom
         touch-action="pan-y pinch-zoom"
         quick-look-browsers="safari chrome"
+        quick-look-scale="resizable"
+        ar-min-scale="0.1"
+        ar-max-scale="10"
+        ar-allow-scaling="true"
       >
       </model-viewer>
     </div>
@@ -507,6 +448,22 @@
                 
                 // Обеспечиваем, чтобы быстрый доступ к AR в iOS работал корректно
                 modelViewer.setAttribute('quick-look-browsers', 'safari chrome');
+                modelViewer.setAttribute('quick-look-scale', 'resizable');
+                
+                // Добавляем параметры масштабирования в URL для модели
+                const activeItem = document.querySelector('.carousel-item.active');
+                if (activeItem && activeItem.dataset.iosModel) {
+                  // Добавляем параметры масштабирования в URL USDZ-файла
+                  let iosModelUrl = activeItem.dataset.iosModel;
+                  
+                  // Если URL не содержит параметров, добавляем их
+                  if (iosModelUrl.indexOf('#') === -1) {
+                    iosModelUrl += '#allowsContentScaling=1&resizesModel=1';
+                  }
+                  
+                  console.log('Настроенный URL для iOS AR:', iosModelUrl);
+                  modelViewer.iosSrc = iosModelUrl;
+                }
               }
               
               // Активируем AR с обработкой ошибок таймаута
@@ -518,14 +475,6 @@
               await Promise.race([arPromise, timeoutPromise]);
               arHint.classList.add('hidden');
               hideLoading();
-              
-              // Показываем элементы управления масштабом в AR
-              const arControls = document.getElementById('ar-controls');
-              const arScaleText = document.getElementById('ar-scale-text');
-              arControls.classList.add('visible');
-              
-              // Настраиваем управление масштабом
-              setupScaleControls();
             } else {
               arHint.textContent = 'AR не поддерживается на вашем устройстве';
               hideLoading();
@@ -543,102 +492,6 @@
           }
         }
 
-        // Настройка элементов управления масштабом
-        function setupScaleControls() {
-          const scaleUp = document.getElementById('scale-up');
-          const scaleDown = document.getElementById('scale-down');
-          const scaleReset = document.getElementById('scale-reset');
-          const scaleText = document.getElementById('ar-scale-text');
-          
-          let currentScale = 1.0;
-          const scaleStep = 0.1;
-          const minScale = 0.1;
-          const maxScale = 5.0;
-          
-          // Функция обновления текста масштаба
-          function updateScaleText() {
-            scaleText.textContent = `×${currentScale.toFixed(1)}`;
-            scaleText.classList.add('visible');
-            
-            // Скрываем текст через 2 секунды
-            setTimeout(() => {
-              scaleText.classList.remove('visible');
-            }, 2000);
-          }
-          
-          // Функция применения масштаба к модели
-          function applyScale() {
-            modelViewer.scale = `${currentScale} ${currentScale} ${currentScale}`;
-            updateScaleText();
-          }
-          
-          // Увеличение масштаба
-          scaleUp.addEventListener('click', () => {
-            if (currentScale < maxScale) {
-              currentScale = Math.min(maxScale, currentScale + scaleStep);
-              applyScale();
-            }
-          });
-          
-          // Уменьшение масштаба
-          scaleDown.addEventListener('click', () => {
-            if (currentScale > minScale) {
-              currentScale = Math.max(minScale, currentScale - scaleStep);
-              applyScale();
-            }
-          });
-          
-          // Сброс масштаба
-          scaleReset.addEventListener('click', () => {
-            currentScale = 1.0;
-            applyScale();
-          });
-          
-          // Обработка жестов масштабирования
-          let initialDistance = 0;
-          let initialScale = 1.0;
-          
-          modelViewer.addEventListener('touchstart', (event) => {
-            if (event.touches.length === 2) {
-              initialDistance = Math.hypot(
-                event.touches[0].clientX - event.touches[1].clientX,
-                event.touches[0].clientY - event.touches[1].clientY
-              );
-              initialScale = currentScale;
-            }
-          });
-          
-          modelViewer.addEventListener('touchmove', (event) => {
-            if (event.touches.length === 2) {
-              const distance = Math.hypot(
-                event.touches[0].clientX - event.touches[1].clientX,
-                event.touches[0].clientY - event.touches[1].clientY
-              );
-              
-              const scaleFactor = distance / initialDistance;
-              currentScale = Math.min(maxScale, Math.max(minScale, initialScale * scaleFactor));
-              
-              applyScale();
-              
-              // Предотвращаем прокрутку страницы
-              event.preventDefault();
-            }
-          });
-          
-          // Обработчик выхода из режима AR
-          modelViewer.addEventListener('ar-status', (event) => {
-            if (event.detail.status === 'not-presenting') {
-              // Скрываем элементы управления масштабом при выходе из AR
-              document.getElementById('ar-controls').classList.remove('visible');
-              document.getElementById('ar-scale-text').classList.remove('visible');
-              
-              // Сбрасываем масштаб
-              currentScale = 1.0;
-              modelViewer.scale = "1 1 1";
-            }
-          });
-        }
-
         // Функция для смены модели
         function switchModel(modelPath, iosModelPath) {
           showLoading('Загрузка модели...');
@@ -647,9 +500,16 @@
           const modelKey = modelPath + '|' + iosModelPath;
           const isPreloaded = modelsLoaded[modelKey];
           
+          // Добавляем параметры масштабирования для iOS
+          let enhancedIosPath = iosModelPath;
+          if (iosModelPath && iosModelPath.indexOf('#') === -1) {
+            enhancedIosPath += '#allowsContentScaling=1&resizesModel=1';
+          }
+          
           modelViewer.src = modelPath;
-          if (iosModelPath) {
-            modelViewer.iosSrc = iosModelPath;
+          if (enhancedIosPath) {
+            modelViewer.iosSrc = enhancedIosPath;
+            console.log('Установлен путь iOS модели с масштабированием:', enhancedIosPath);
           }
           
           // Если модель уже была загружена, скрываем загрузчик сразу
@@ -676,7 +536,12 @@
           // Перебираем все модели и создаем для них предзагрузчики
           carouselItems.forEach(item => {
             const modelPath = item.dataset.model;
-            const iosModelPath = item.dataset.iosModel;
+            let iosModelPath = item.dataset.iosModel;
+            
+            // Добавляем параметры масштабирования для iOS
+            if (iosModelPath && iosModelPath.indexOf('#') === -1) {
+              iosModelPath += '#allowsContentScaling=1&resizesModel=1';
+            }
             
             // Создаем model-viewer для предзагрузки
             const preloader = document.createElement('model-viewer');
@@ -688,7 +553,7 @@
             // Обработчик загрузки
             preloader.addEventListener('load', () => {
               console.log('Предзагружена модель:', modelPath);
-              modelsLoaded[modelPath + '|' + iosModelPath] = true;
+              modelsLoaded[modelPath + '|' + item.dataset.iosModel] = true;
             });
             
             container.appendChild(preloader);
@@ -722,10 +587,6 @@
 
         // Инициализация
         try {
-          // Скрываем элементы управления AR изначально
-          document.getElementById('ar-controls').classList.remove('visible');
-          document.getElementById('ar-scale-text').classList.remove('visible');
-          
           // Скрываем загрузчик через таймаут, если он не скроется сам
           setTimeout(() => {
             if (!loading.classList.contains('hidden')) {
