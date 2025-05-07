@@ -222,7 +222,7 @@
             
             const video = document.createElement('video');
             video.srcObject = stream;
-            video.play();
+            await video.play();
 
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
@@ -233,26 +233,29 @@
                 canvas.width = video.videoWidth;
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                  inversionAttempts: "dontInvert",
+                });
 
                 if (code && selectedModel) {
-                  // QR-код обнаружен и модель выбрана
+                  console.log('QR код обнаружен:', code.data);
                   qrDetected = true;
                   arHint.innerHTML = 'QR-код обнаружен!<br><button class="ar-launch-button" onclick="launchAR()">Запустить AR</button>';
-                  video.pause();
-                  stream.getTracks().forEach(track => track.stop());
                   return true;
                 } else if (!code && qrDetected) {
                   qrDetected = false;
                   arHint.textContent = 'Наведите камеру на QR-код';
                 }
               }
-              requestAnimationFrame(scanQR);
+              if (!qrDetected) {
+                requestAnimationFrame(scanQR);
+              }
             }
 
             scanQR();
           } catch (error) {
             console.error('Ошибка при сканировании QR-кода:', error);
+            arHint.textContent = 'Ошибка доступа к камере';
           }
         }
 
@@ -269,6 +272,7 @@
             }
           } catch (error) {
             console.error('Ошибка при запуске AR:', error);
+            arHint.textContent = 'Ошибка запуска AR';
           }
         };
 
@@ -309,8 +313,10 @@
               } 
             });
             cameraPreview.srcObject = stream;
+            checkQRCode(); // Запускаем сканирование QR после успешного запуска камеры
           } catch (error) {
             console.error('Ошибка доступа к камере:', error);
+            arHint.textContent = 'Ошибка доступа к камере';
           }
         }
 
@@ -322,9 +328,8 @@
           }
         }
 
-        // Запускаем камеру и проверку QR-кода
+        // Запускаем камеру
         startCamera();
-        checkQRCode();
 
         // Обработчик выбора модели
         carouselItems.forEach(item => {
