@@ -30,17 +30,33 @@
         height: 100%; /* Allow some space for the slider */
       }
 
-      .slider {
-        width: 100%;
-        height: 10%;
-        text-align: center;
+      .ar-prompt {
         position: fixed;
-        bottom: 16px;
-        display: flex; /* Use flexbox for better button alignment */
-        justify-content: space-around; /* Distribute buttons evenly */
-        padding: 0 10px; /* Add some padding on the sides */
-        box-sizing: border-box; /* Include padding in width calculation */
+        left: 50%;
+        bottom: 175px;
+        animation: circle 4s infinite;
+        background-color: #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+        margin-left: -25px;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
+
+      .ar-prompt img {
+        width: 30px;
+        height: 30px;
+      }
+
+      @keyframes circle {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(10px); }
+        100% { transform: translateY(0); }
+      }
+
       .links {
         width: 100%;
         height: 10%;
@@ -50,30 +66,16 @@
         justify-content: space-between;
         padding: 0 10px; /* Add some padding on the sides */
         box-sizing: border-box; /* Include padding in width calculation */
+        display: flex;
       }
-      .link {
 
+      .link {
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
         background-color: #fff;
         border-radius: 0px;
         border: none;
-        width: 30%; /* Adjust width as needed */
-        height: 100%;
-
-      }
-
-      .slide {
-        scroll-snap-align: start;
-        flex-shrink: 0;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-color: #fff;
-        border-radius: 10px;
-        border: none;
-        display: flex;
         width: 30%; /* Adjust width as needed */
         height: 100%;
       }
@@ -96,28 +98,35 @@
 
   </head>
   <body>
-    <model-viewer src="models/cat.glb" ios-src="models/cat.usdz" ar camera-controls tone-mapping="neutral" shadow-intensity="1" autoplay animation-name="rotate">
-      <div id = "ar_button">
-      <button slot="ar-button" id = "click">
-        👋 Activate AR
-      </button>
-    </div>
-     <!-- <div class="slider">
-        <button class="slide" onclick="switchSrc(this, 'sub')" style="background-image:url('L.png'); background-color: transparent;">
-        </button>
-        <button class="slide" onclick="switchSrc(this, 'add')" style="background-image:url('R.png'); background-color: transparent;">
-        </button>
+    <model-viewer 
+      src="models/cat.glb" 
+      ios-src="models/cat.usdz"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="fixed"
+      ar-placement="floor"
+      environment-image="neutral"
+      shadow-intensity="1"
+      shadow-softness="1"
+      camera-controls
+      auto-rotate
+      interaction-prompt="auto"
+      xr-environment
+      ar-status="not-presenting"
+      camera-orbit="45deg 55deg 2.5m"
+      field-of-view="30deg"
+      min-camera-orbit="auto auto auto"
+      max-camera-orbit="auto auto auto"
+    >
+      <div class="ar-prompt" slot="ar-prompt">
+        <img src="prompt.svg" alt="Наведите камеру на поверхность">
       </div>
-    -->
-
 
       <div class="links">
         <button class="link" onclick="document.location.href = 'mailto:info@alphawood.store';" style="background-image:url('em.png'); background-color: transparent;">
         </button>
         <button class="link" onclick="document.location.href = 'https://www.alphawood.store/';" style="background-image:url('site.png'); background-color: transparent;">
         </button>
-
-
       </div>
     </model-viewer>
 
@@ -150,9 +159,48 @@
     document.getElementById("ar_button").outerHTML = "<button slot='ar-button' id = 'click'>👋 Activate AR</button>"
   }
 
+  // Функция для автоматического запуска AR
+  async function startAR() {
+    try {
+      // Запрашиваем разрешение на использование камеры
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      stream.getTracks().forEach(track => track.stop()); // Останавливаем поток после получения разрешения
+      
+      // Запускаем AR
+      if (modelViewer.canActivateAR) {
+        await modelViewer.activateAR();
+      }
+    } catch (error) {
+      console.error('Ошибка при запуске AR:', error);
+    }
+  }
 
+  // Проверяем, является ли устройство мобильным
+  function isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
 
-  </script>
+  // Автоматически запускаем AR на мобильных устройствах
+  if (isMobile()) {
+    // Даем небольшую задержку для загрузки модели
+    setTimeout(startAR, 1000);
+  }
+
+  // Обработка событий AR
+  modelViewer.addEventListener('ar-status', (event) => {
+    if (event.detail.status === 'session-started') {
+      console.log('AR сессия началась');
+    } else if (event.detail.status === 'not-tracking') {
+      console.log('Потеря отслеживания поверхности');
+    }
+  });
+
+  // Обработка загрузки модели
+  modelViewer.addEventListener('load', () => {
+    console.log('Модель загружена');
+  });
+
+</script>
 
 
   </body>
