@@ -210,6 +210,29 @@
           }
         }
 
+        // Обработчик выбора модели
+        carouselItems.forEach(item => {
+          item.addEventListener('click', () => {
+            carouselItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            
+            // Проверяем, является ли устройство iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            if (isIOS) {
+              // Для iOS используем Quick Look
+              const modelUrl = item.dataset.iosModel;
+              if (modelUrl) {
+                window.location.href = modelUrl;
+              }
+            } else {
+              // Для других устройств используем WebXR
+              switchModel(item.dataset.model, item.dataset.iosModel);
+              startAR();
+            }
+          });
+        });
+
         // Функция для быстрой смены модели
         function switchModel(model, iosModel) {
           modelViewer.src = model;
@@ -238,22 +261,6 @@
 
         // Запускаем камеру
         startCamera();
-
-        // Обработчик выбора модели
-        carouselItems.forEach(item => {
-          item.addEventListener('click', () => {
-            carouselItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            switchModel(item.dataset.model, item.dataset.iosModel);
-            
-            // Проверяем, является ли устройство iOS
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS) {
-              // На iOS запускаем AR сразу после выбора модели
-              startAR();
-            }
-          });
-        });
 
         // Проверяем, является ли устройство мобильным
         if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
