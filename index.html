@@ -175,6 +175,17 @@
           ar-scale="auto"
           ar-placement="floor"
           ios-src="models/model.usdz"
+          camera-orbit="45deg 55deg 2.5m"
+          field-of-view="30deg"
+          min-camera-orbit="auto auto auto"
+          max-camera-orbit="auto auto auto"
+          ar-tracking="marker"
+          touch-action="pan-y pinch-zoom"
+          min-scale="0.1"
+          max-scale="10"
+          scale="1"
+          scale-step="0.1"
+          pinch-to-zoom
         ></model-viewer>
       </div>
       <div class="carousel-item" data-model="models/volvo_240.glb" data-ios-model="models/volvo_240.usdz">
@@ -189,6 +200,17 @@
           ar-scale="auto"
           ar-placement="floor"
           ios-src="models/volvo_240.usdz"
+          camera-orbit="45deg 55deg 2.5m"
+          field-of-view="30deg"
+          min-camera-orbit="auto auto auto"
+          max-camera-orbit="auto auto auto"
+          ar-tracking="marker"
+          touch-action="pan-y pinch-zoom"
+          min-scale="0.1"
+          max-scale="10"
+          scale="1"
+          scale-step="0.1"
+          pinch-to-zoom
         ></model-viewer>
       </div>
       <div class="carousel-item" data-model="models/apple.glb" data-ios-model="models/apple.usdz">
@@ -203,6 +225,17 @@
           ar-scale="auto"
           ar-placement="floor"
           ios-src="models/apple.usdz"
+          camera-orbit="45deg 55deg 2.5m"
+          field-of-view="30deg"
+          min-camera-orbit="auto auto auto"
+          max-camera-orbit="auto auto auto"
+          ar-tracking="marker"
+          touch-action="pan-y pinch-zoom"
+          min-scale="0.1"
+          max-scale="10"
+          scale="1"
+          scale-step="0.1"
+          pinch-to-zoom
         ></model-viewer>
       </div>
     </div>
@@ -276,6 +309,10 @@
             if (tapLength < 300 && tapLength > 0) {
               // Двойное нажатие
               if (viewer.canActivateAR) {
+                // Настраиваем параметры для Quick Look
+                viewer.arScale = 'auto';
+                viewer.arPlacement = 'floor';
+                viewer.arTracking = 'marker';
                 viewer.activateAR();
               }
               e.preventDefault();
