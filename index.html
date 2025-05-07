@@ -140,6 +140,18 @@
         object-fit: cover;
         z-index: -1;
       }
+
+      .carousel-item a {
+        display: block;
+        width: 100%;
+        height: 100%;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .carousel-item a:hover {
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
@@ -180,82 +192,88 @@
 
     <div class="carousel">
       <div class="carousel-item active" data-model="models/model.glb" data-ios-model="models/model.usdz">
-        <model-viewer 
-          src="models/model.glb" 
-          camera-controls 
-          auto-rotate
-          quick-look-browsers="safari chrome"
-          ar-button
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-scale="auto"
-          ar-placement="floor"
-          ios-src="models/model.usdz"
-          camera-orbit="45deg 55deg 2.5m"
-          field-of-view="30deg"
-          min-camera-orbit="auto auto auto"
-          max-camera-orbit="auto auto auto"
-          ar-tracking="marker"
-          touch-action="pan-y pinch-zoom"
-          min-scale="0.1"
-          max-scale="10"
-          scale="1"
-          scale-step="0.1"
-          pinch-to-zoom
-        ></model-viewer>
-        <div class="model-name">Стул</div>
+        <a href="models/model.usdz" rel="ar">
+          <model-viewer 
+            src="models/model.glb" 
+            camera-controls 
+            auto-rotate
+            quick-look-browsers="safari chrome"
+            ar-button
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="auto"
+            ar-placement="floor"
+            ios-src="models/model.usdz"
+            camera-orbit="45deg 55deg 2.5m"
+            field-of-view="30deg"
+            min-camera-orbit="auto auto auto"
+            max-camera-orbit="auto auto auto"
+            ar-tracking="marker"
+            touch-action="pan-y pinch-zoom"
+            min-scale="0.1"
+            max-scale="10"
+            scale="1"
+            scale-step="0.1"
+            pinch-to-zoom
+          ></model-viewer>
+          <div class="model-name">Стул</div>
+        </a>
       </div>
       <div class="carousel-item" data-model="models/volvo_240.glb" data-ios-model="models/volvo_240.usdz">
-        <model-viewer 
-          src="models/volvo_240.glb" 
-          camera-controls 
-          auto-rotate
-          quick-look-browsers="safari chrome"
-          ar-button
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-scale="auto"
-          ar-placement="floor"
-          ios-src="models/volvo_240.usdz"
-          camera-orbit="45deg 55deg 2.5m"
-          field-of-view="30deg"
-          min-camera-orbit="auto auto auto"
-          max-camera-orbit="auto auto auto"
-          ar-tracking="marker"
-          touch-action="pan-y pinch-zoom"
-          min-scale="0.1"
-          max-scale="10"
-          scale="1"
-          scale-step="0.1"
-          pinch-to-zoom
-        ></model-viewer>
-        <div class="model-name">Volvo 240</div>
+        <a href="models/volvo_240.usdz" rel="ar">
+          <model-viewer 
+            src="models/volvo_240.glb" 
+            camera-controls 
+            auto-rotate
+            quick-look-browsers="safari chrome"
+            ar-button
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="auto"
+            ar-placement="floor"
+            ios-src="models/volvo_240.usdz"
+            camera-orbit="45deg 55deg 2.5m"
+            field-of-view="30deg"
+            min-camera-orbit="auto auto auto"
+            max-camera-orbit="auto auto auto"
+            ar-tracking="marker"
+            touch-action="pan-y pinch-zoom"
+            min-scale="0.1"
+            max-scale="10"
+            scale="1"
+            scale-step="0.1"
+            pinch-to-zoom
+          ></model-viewer>
+          <div class="model-name">Volvo 240</div>
+        </a>
       </div>
       <div class="carousel-item" data-model="models/apple.glb" data-ios-model="models/apple.usdz">
-        <model-viewer 
-          src="models/apple.glb" 
-          camera-controls 
-          auto-rotate
-          quick-look-browsers="safari chrome"
-          ar-button
-          ar
-          ar-modes="webxr scene-viewer quick-look"
-          ar-scale="auto"
-          ar-placement="floor"
-          ios-src="models/apple.usdz"
-          camera-orbit="45deg 55deg 2.5m"
-          field-of-view="30deg"
-          min-camera-orbit="auto auto auto"
-          max-camera-orbit="auto auto auto"
-          ar-tracking="marker"
-          touch-action="pan-y pinch-zoom"
-          min-scale="0.1"
-          max-scale="10"
-          scale="1"
-          scale-step="0.1"
-          pinch-to-zoom
-        ></model-viewer>
-        <div class="model-name">Яблоко</div>
+        <a href="models/apple.usdz" rel="ar">
+          <model-viewer 
+            src="models/apple.glb" 
+            camera-controls 
+            auto-rotate
+            quick-look-browsers="safari chrome"
+            ar-button
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="auto"
+            ar-placement="floor"
+            ios-src="models/apple.usdz"
+            camera-orbit="45deg 55deg 2.5m"
+            field-of-view="30deg"
+            min-camera-orbit="auto auto auto"
+            max-camera-orbit="auto auto auto"
+            ar-tracking="marker"
+            touch-action="pan-y pinch-zoom"
+            min-scale="0.1"
+            max-scale="10"
+            scale="1"
+            scale-step="0.1"
+            pinch-to-zoom
+          ></model-viewer>
+          <div class="model-name">Яблоко</div>
+        </a>
       </div>
     </div>
 
@@ -343,26 +361,28 @@
         // Обработчик выбора модели
         carouselItems.forEach(item => {
           const viewer = item.querySelector('model-viewer');
-          item.addEventListener('click', () => {
+          const link = item.querySelector('a');
+          
+          // Обработка клика по модели
+          item.addEventListener('click', (e) => {
             // Убираем активный класс у всех элементов
             carouselItems.forEach(i => i.classList.remove('active'));
             // Добавляем активный класс выбранному элементу
             item.classList.add('active');
             
-            // Меняем модель
+            // Меняем модель в основном viewer
             const model = item.dataset.model;
             const iosModel = item.dataset.iosModel;
             switchModel(model, iosModel);
 
             // Проверяем, является ли устройство iOS
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS && viewer.canActivateAR) {
-              // Настраиваем параметры для Quick Look
-              viewer.arScale = 'auto';
-              viewer.arPlacement = 'floor';
-              viewer.arTracking = 'marker';
-              // Активируем AR
-              viewer.activateAR();
+            if (isIOS) {
+              // На iOS открываем Quick Look
+              e.preventDefault();
+              if (link) {
+                window.location.href = link.href;
+              }
             }
           });
         });
