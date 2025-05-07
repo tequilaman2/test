@@ -170,33 +170,48 @@
         const loading = document.querySelector('#loading');
         const cameraPreview = document.querySelector('#camera-preview');
 
-        // Функция для скрытия кнопки Quick Look
-        function hideQuickLookButton() {
-          const arButton = document.querySelector('button[slot="ar-button"]');
-          if (arButton) {
-            arButton.style.display = 'none';
+        // Функция для проверки QR-кода
+        async function checkQRCode() {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+              video: { 
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              } 
+            });
+            
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            function scanQR() {
+              if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (code) {
+                  // QR-код обнаружен
+                  modelViewer.quickLookSrc = modelViewer.iosSrc;
+                  video.pause();
+                  stream.getTracks().forEach(track => track.stop());
+                  return true;
+                }
+              }
+              requestAnimationFrame(scanQR);
+            }
+
+            scanQR();
+          } catch (error) {
+            console.error('Ошибка при сканировании QR-кода:', error);
           }
         }
-
-        // Функция для показа кнопки Quick Look
-        function showQuickLookButton() {
-          const arButton = document.querySelector('button[slot="ar-button"]');
-          if (arButton) {
-            arButton.style.display = 'block';
-          }
-        }
-
-        // Скрываем кнопку при загрузке
-        hideQuickLookButton();
-
-        // Добавляем обработчик для отслеживания QR-кода
-        modelViewer.addEventListener('ar-tracking', (event) => {
-          if (event.detail.status === 'tracking') {
-            showQuickLookButton();
-          } else {
-            hideQuickLookButton();
-          }
-        });
 
         // Добавляем обработчик жестов масштабирования
         let initialDistance = 0;
@@ -257,9 +272,12 @@
               modelViewer.arPlacement = 'floor';
               modelViewer.arTracking = 'marker';
               
-              // Запускаем AR
-              await modelViewer.activateAR();
-              loading.classList.add('hidden');
+              // Проверяем QR-код перед запуском AR
+              const hasQR = await checkQRCode();
+              if (hasQR) {
+                await modelViewer.activateAR();
+                loading.classList.add('hidden');
+              }
             }
           } catch (error) {
             console.error('Ошибка при запуске AR:', error);
@@ -279,7 +297,7 @@
             // Проверяем, является ли устройство iOS
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
             if (isIOS) {
-              // На iOS запускаем AR сразу после выбора модели
+              // На iOS запускаем AR только при обнаружении QR-кода
               startAR();
             }
           });
