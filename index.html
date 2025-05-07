@@ -110,11 +110,48 @@
         object-fit: cover;
         z-index: -1;
       }
+
+      .ar-hint {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        text-align: center;
+        z-index: 1000;
+        font-size: 16px;
+        transition: opacity 0.3s ease;
+      }
+
+      .ar-hint.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .ar-launch-button {
+        background: #007AFF;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        margin-top: 10px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .ar-launch-button:hover {
+        background: #0056b3;
+      }
     </style>
   </head>
   <body>
     <video id="camera-preview" autoplay playsinline></video>
     <div class="loading" id="loading">Загрузка AR...</div>
+    <div class="ar-hint" id="ar-hint">Выберите модель внизу экрана</div>
 
     <div class="model-viewer-container">
       <model-viewer 
@@ -146,7 +183,6 @@
         pinch-to-zoom
         touch-action="pan-y pinch-zoom"
         quick-look-browsers="safari chrome"
-        ar-button
       >
       </model-viewer>
     </div>
@@ -169,6 +205,9 @@
         const carouselItems = document.querySelectorAll('.carousel-item');
         const loading = document.querySelector('#loading');
         const cameraPreview = document.querySelector('#camera-preview');
+        const arHint = document.querySelector('#ar-hint');
+        let selectedModel = false;
+        let qrDetected = false;
 
         // Функция для проверки QR-кода
         async function checkQRCode() {
@@ -196,12 +235,16 @@
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-                if (code) {
-                  // QR-код обнаружен
-                  modelViewer.quickLookSrc = modelViewer.iosSrc;
+                if (code && selectedModel) {
+                  // QR-код обнаружен и модель выбрана
+                  qrDetected = true;
+                  arHint.innerHTML = 'QR-код обнаружен!<br><button class="ar-launch-button" onclick="launchAR()">Запустить AR</button>';
                   video.pause();
                   stream.getTracks().forEach(track => track.stop());
                   return true;
+                } else if (!code && qrDetected) {
+                  qrDetected = false;
+                  arHint.textContent = 'Наведите камеру на QR-код';
                 }
               }
               requestAnimationFrame(scanQR);
@@ -212,6 +255,22 @@
             console.error('Ошибка при сканировании QR-кода:', error);
           }
         }
+
+        // Функция для запуска AR
+        window.launchAR = async function() {
+          try {
+            if (modelViewer.canActivateAR) {
+              modelViewer.arScale = 'fixed';
+              modelViewer.arPlacement = 'floor';
+              modelViewer.arTracking = 'marker';
+              await modelViewer.activateAR();
+              arHint.classList.add('hidden');
+              loading.classList.add('hidden');
+            }
+          } catch (error) {
+            console.error('Ошибка при запуске AR:', error);
+          }
+        };
 
         // Добавляем обработчик жестов масштабирования
         let initialDistance = 0;
@@ -263,29 +322,9 @@
           }
         }
 
-        // Функция для автоматического запуска AR
-        async function startAR() {
-          try {
-            if (modelViewer.canActivateAR) {
-              // Настраиваем параметры AR для iOS
-              modelViewer.arScale = 'fixed';
-              modelViewer.arPlacement = 'floor';
-              modelViewer.arTracking = 'marker';
-              
-              // Проверяем QR-код перед запуском AR
-              const hasQR = await checkQRCode();
-              if (hasQR) {
-                await modelViewer.activateAR();
-                loading.classList.add('hidden');
-              }
-            }
-          } catch (error) {
-            console.error('Ошибка при запуске AR:', error);
-          }
-        }
-
-        // Запускаем камеру
+        // Запускаем камеру и проверку QR-кода
         startCamera();
+        checkQRCode();
 
         // Обработчик выбора модели
         carouselItems.forEach(item => {
@@ -293,13 +332,8 @@
             carouselItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             switchModel(item.dataset.model, item.dataset.iosModel);
-            
-            // Проверяем, является ли устройство iOS
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS) {
-              // На iOS запускаем AR только при обнаружении QR-кода
-              startAR();
-            }
+            selectedModel = true;
+            arHint.textContent = 'Наведите камеру на QR-код';
           });
         });
 
