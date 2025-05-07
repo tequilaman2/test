@@ -6,7 +6,10 @@
 
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-touch-fullscreen" content="yes">
     <title>AR Viewer</title>
     <style>
       body {
@@ -458,11 +461,40 @@
                   
                   // Если URL не содержит параметров, добавляем их
                   if (iosModelUrl.indexOf('#') === -1) {
-                    iosModelUrl += '#allowsContentScaling=1&resizesModel=1';
+                    // Полный набор параметров для масштабирования в iOS Quick Look AR
+                    iosModelUrl += '#allowsContentScaling=1&resizesModel=1&preservesOriginalScale=0&autoScales=1&scaleType=dynamic';
                   }
                   
                   console.log('Настроенный URL для iOS AR:', iosModelUrl);
                   modelViewer.iosSrc = iosModelUrl;
+                  
+                  // Устанавливаем параметры масштабирования напрямую
+                  try {
+                    modelViewer.quickLookBrowsers = 'safari chrome';
+                    modelViewer.canScale = true;
+                    modelViewer.arScale = 'auto';
+                    modelViewer.arMinScale = 0.1;
+                    modelViewer.arMaxScale = 10;
+                    modelViewer.quickLookScale = 'resizable';
+                    
+                    // Устанавливаем дополнительные метатеги для iOS
+                    const metaScale = document.querySelector('meta[name="apple-mobile-web-app-capable"]');
+                    if (!metaScale) {
+                      const meta = document.createElement('meta');
+                      meta.name = 'apple-mobile-web-app-capable';
+                      meta.content = 'yes';
+                      document.head.appendChild(meta);
+                    }
+                    
+                    // Пробуем альтернативный метод запуска AR с использованием специальной ссылки
+                    if (tryIOSQuickLookAR(iosModelUrl)) {
+                      hideLoading();
+                      arHint.classList.add('hidden');
+                      return; // Выходим, так как AR запускается другим способом
+                    }
+                  } catch (e) {
+                    console.warn('Ошибка установки параметров масштабирования:', e);
+                  }
                 }
               }
               
@@ -492,6 +524,47 @@
           }
         }
 
+        // Функция для запуска AR в iOS с поддержкой масштабирования через специальную ссылку
+        function tryIOSQuickLookAR(modelUrl) {
+          // Проверяем, что это iOS устройство
+          if (!/iPad|iPhone|iPod/.test(navigator.userAgent) || window.MSStream) {
+            return false;
+          }
+          
+          try {
+            // Получаем шаблон для iOS AR
+            const template = document.getElementById('ios-ar-template').innerHTML;
+            
+            // Создаем временный элемент
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = template.replace('%URL%', modelUrl);
+            const arLink = tempContainer.querySelector('a[rel="ar"]');
+            
+            if (!arLink) {
+              return false;
+            }
+            
+            // Добавляем ссылку в DOM
+            document.body.appendChild(arLink);
+            
+            // Кликаем по ссылке для запуска AR
+            arLink.click();
+            
+            // Удаляем ссылку после использования
+            setTimeout(() => {
+              if (arLink.parentNode) {
+                arLink.parentNode.removeChild(arLink);
+              }
+            }, 2000);
+            
+            console.log('Запущен AR через специальную ссылку для iOS');
+            return true;
+          } catch (error) {
+            console.error('Ошибка при запуске AR через ссылку:', error);
+            return false;
+          }
+        }
+
         // Функция для смены модели
         function switchModel(modelPath, iosModelPath) {
           showLoading('Загрузка модели...');
@@ -503,7 +576,7 @@
           // Добавляем параметры масштабирования для iOS
           let enhancedIosPath = iosModelPath;
           if (iosModelPath && iosModelPath.indexOf('#') === -1) {
-            enhancedIosPath += '#allowsContentScaling=1&resizesModel=1';
+            enhancedIosPath += '#allowsContentScaling=1&resizesModel=1&preservesOriginalScale=0&autoScales=1&scaleType=dynamic';
           }
           
           modelViewer.src = modelPath;
@@ -540,7 +613,7 @@
             
             // Добавляем параметры масштабирования для iOS
             if (iosModelPath && iosModelPath.indexOf('#') === -1) {
-              iosModelPath += '#allowsContentScaling=1&resizesModel=1';
+              iosModelPath += '#allowsContentScaling=1&resizesModel=1&preservesOriginalScale=0&autoScales=1&scaleType=dynamic';
             }
             
             // Создаем model-viewer для предзагрузки
@@ -682,6 +755,18 @@
           hideLoading();
         }
       });
+    </script>
+    
+    <!-- Template для iOS AR с поддержкой масштабирования -->
+    <script type="text/x-template" id="ios-ar-template">
+      <a rel="ar" href="%URL%" 
+         data-action="quicklook"
+         data-allow-scaling="true"
+         data-scale="auto"
+         data-canonical-scale="1.0"
+         data-preserve-scale="0"
+         style="display:none">
+      </a>
     </script>
   </body>
 </html>
