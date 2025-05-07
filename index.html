@@ -159,6 +159,8 @@
         scale-step="0.1"
         pinch-to-zoom
         touch-action="pan-y pinch-zoom"
+        ar-persist
+        ar-persist-placement
       >
       </model-viewer>
     </div>
@@ -203,6 +205,30 @@
         // Добавляем обработчик жестов масштабирования
         let initialDistance = 0;
         let initialScale = 1;
+        let lastPosition = null;
+        let lastRotation = null;
+        let lastScale = 1;
+
+        // Сохраняем позицию и масштаб при изменении
+        modelViewer.addEventListener('ar-status', (event) => {
+          if (event.detail.status === 'session-started') {
+            // Восстанавливаем последнюю позицию и масштаб
+            if (lastPosition) {
+              modelViewer.position = lastPosition;
+              modelViewer.rotation = lastRotation;
+              modelViewer.scale = lastScale;
+            }
+          }
+        });
+
+        // Сохраняем позицию и масштаб при перемещении
+        modelViewer.addEventListener('ar-tracking', (event) => {
+          if (event.detail.status === 'tracking') {
+            lastPosition = modelViewer.position;
+            lastRotation = modelViewer.rotation;
+            lastScale = modelViewer.scale;
+          }
+        });
 
         document.addEventListener('touchstart', (e) => {
           if (e.touches.length === 2) {
@@ -223,6 +249,7 @@
             
             const scale = initialScale * (currentDistance / initialDistance);
             modelViewer.scale = Math.min(Math.max(scale, 0.1), 10);
+            lastScale = modelViewer.scale;
           }
         });
 
