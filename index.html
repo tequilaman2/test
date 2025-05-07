@@ -145,6 +145,8 @@
         scale-step="0.1"
         pinch-to-zoom
         touch-action="pan-y pinch-zoom"
+        quick-look-browsers="safari chrome"
+        ar-button
       >
       </model-viewer>
     </div>
@@ -167,6 +169,34 @@
         const carouselItems = document.querySelectorAll('.carousel-item');
         const loading = document.querySelector('#loading');
         const cameraPreview = document.querySelector('#camera-preview');
+
+        // Функция для скрытия кнопки Quick Look
+        function hideQuickLookButton() {
+          const arButton = document.querySelector('button[slot="ar-button"]');
+          if (arButton) {
+            arButton.style.display = 'none';
+          }
+        }
+
+        // Функция для показа кнопки Quick Look
+        function showQuickLookButton() {
+          const arButton = document.querySelector('button[slot="ar-button"]');
+          if (arButton) {
+            arButton.style.display = 'block';
+          }
+        }
+
+        // Скрываем кнопку при загрузке
+        hideQuickLookButton();
+
+        // Добавляем обработчик для отслеживания QR-кода
+        modelViewer.addEventListener('ar-tracking', (event) => {
+          if (event.detail.status === 'tracking') {
+            showQuickLookButton();
+          } else {
+            hideQuickLookButton();
+          }
+        });
 
         // Добавляем обработчик жестов масштабирования
         let initialDistance = 0;
@@ -210,29 +240,6 @@
           }
         }
 
-        // Обработчик выбора модели
-        carouselItems.forEach(item => {
-          item.addEventListener('click', () => {
-            carouselItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            
-            // Проверяем, является ли устройство iOS
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            
-            if (isIOS) {
-              // Для iOS используем Quick Look
-              const modelUrl = item.dataset.iosModel;
-              if (modelUrl) {
-                window.location.href = modelUrl;
-              }
-            } else {
-              // Для других устройств используем WebXR
-              switchModel(item.dataset.model, item.dataset.iosModel);
-              startAR();
-            }
-          });
-        });
-
         // Функция для быстрой смены модели
         function switchModel(model, iosModel) {
           modelViewer.src = model;
@@ -261,6 +268,22 @@
 
         // Запускаем камеру
         startCamera();
+
+        // Обработчик выбора модели
+        carouselItems.forEach(item => {
+          item.addEventListener('click', () => {
+            carouselItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            switchModel(item.dataset.model, item.dataset.iosModel);
+            
+            // Проверяем, является ли устройство iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+              // На iOS запускаем AR сразу после выбора модели
+              startAR();
+            }
+          });
+        });
 
         // Проверяем, является ли устройство мобильным
         if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
