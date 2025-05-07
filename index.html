@@ -152,6 +152,21 @@
       .carousel-item a:hover {
         text-decoration: none;
       }
+
+      /* Скрываем иконку AR */
+      model-viewer::part(default-ar-button) {
+        display: none;
+      }
+
+      /* Скрываем подсказки взаимодействия */
+      model-viewer::part(interaction-prompt) {
+        display: none;
+      }
+
+      /* Скрываем кнопку AR в карусели */
+      .carousel-item model-viewer::part(default-ar-button) {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -172,7 +187,7 @@
         shadow-softness="1"
         camera-controls
         auto-rotate
-        interaction-prompt="auto"
+        interaction-prompt="none"
         xr-environment
         ar-status="not-presenting"
         camera-orbit="45deg 55deg 2.5m"
@@ -215,6 +230,9 @@
             scale="1"
             scale-step="0.1"
             pinch-to-zoom
+            interaction-prompt="none"
+            ar-button
+            ar-status="not-presenting"
           ></model-viewer>
           <div class="model-name">Стул</div>
         </a>
@@ -243,6 +261,9 @@
             scale="1"
             scale-step="0.1"
             pinch-to-zoom
+            interaction-prompt="none"
+            ar-button
+            ar-status="not-presenting"
           ></model-viewer>
           <div class="model-name">Volvo 240</div>
         </a>
@@ -271,6 +292,9 @@
             scale="1"
             scale-step="0.1"
             pinch-to-zoom
+            interaction-prompt="none"
+            ar-button
+            ar-status="not-presenting"
           ></model-viewer>
           <div class="model-name">Яблоко</div>
         </a>
