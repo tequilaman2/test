@@ -89,65 +89,11 @@
         transform: translate(-50%, -50%);
         background: rgba(0, 0, 0, 0.8);
         color: white;
-        padding: 20px 30px;
-        border-radius: 15px;
+        padding: 15px 25px;
+        border-radius: 10px;
         text-align: center;
         z-index: 1000;
         font-size: 16px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      .checkmark {
-        width: 50px;
-        height: 50px;
-        border-radius: 25px;
-        background: #34C759;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transform: scale(0.5);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .checkmark.visible {
-        opacity: 1;
-        transform: scale(1);
-      }
-
-      .checkmark svg {
-        width: 30px;
-        height: 30px;
-        fill: white;
-      }
-
-      .ar-prompt-text {
-        margin: 0;
-        font-weight: 500;
-      }
-
-      .ar-prompt.hidden {
-        display: none;
-      }
-
-      @keyframes checkmarkAnimation {
-        0% {
-          transform: scale(0.5);
-          opacity: 0;
-        }
-        50% {
-          transform: scale(1.1);
-        }
-        100% {
-          transform: scale(1);
-          opacity: 1;
-        }
       }
 
       .loading {
@@ -178,58 +124,11 @@
         object-fit: cover;
         z-index: -1;
       }
-
-      .height-controls {
-        position: fixed;
-        right: 20px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        z-index: 1000;
-      }
-
-      .height-button {
-        width: 50px;
-        height: 50px;
-        border-radius: 25px;
-        background: rgba(0, 0, 0, 0.7);
-        border: 2px solid #007AFF;
-        color: white;
-        font-size: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-      }
-
-      .height-button:active {
-        background: rgba(0, 122, 255, 0.3);
-      }
-
-      .height-display {
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 5px;
-        text-align: center;
-        font-size: 14px;
-        margin: 5px 0;
-      }
     </style>
   </head>
   <body>
     <video id="camera-preview" autoplay playsinline></video>
     <div class="loading" id="loading">Загрузка AR...</div>
-
-    <div class="height-controls">
-      <div class="height-button" id="height-up">+</div>
-      <div class="height-display" id="height-value">0 см</div>
-      <div class="height-button" id="height-down">-</div>
-    </div>
 
     <div class="model-viewer-container">
       <model-viewer 
@@ -276,47 +175,12 @@
       </div>
     </div>
 
-    <div class="ar-prompt" id="ar-prompt">
-      <div class="checkmark" id="checkmark">
-        <svg viewBox="0 0 24 24">
-          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
-        </svg>
-      </div>
-      <p class="ar-prompt-text">Наведите камеру на QR-код для размещения модели</p>
-    </div>
-
     <script>
       document.addEventListener('DOMContentLoaded', async function() {
         const modelViewer = document.querySelector('#model-viewer');
         const carouselItems = document.querySelectorAll('.carousel-item');
-        const arPrompt = document.querySelector('#ar-prompt');
-        const checkmark = document.querySelector('#checkmark');
         const loading = document.querySelector('#loading');
         const cameraPreview = document.querySelector('#camera-preview');
-        const heightUp = document.querySelector('#height-up');
-        const heightDown = document.querySelector('#height-down');
-        const heightValue = document.querySelector('#height-value');
-
-        let currentHeight = 0;
-        const heightStep = 10; // шаг изменения высоты в сантиметрах
-
-        // Функция обновления высоты
-        function updateHeight(delta) {
-          currentHeight = Math.max(0, Math.min(200, currentHeight + delta));
-          heightValue.textContent = `${currentHeight} см`;
-          
-          // Обновляем позицию модели
-          if (modelViewer.arStatus === 'session-started') {
-            const transform = modelViewer.getAttribute('transform');
-            const matrix = new DOMMatrix(transform);
-            matrix.m42 = currentHeight / 100; // конвертируем сантиметры в метры
-            modelViewer.setAttribute('transform', matrix.toString());
-          }
-        }
-
-        // Обработчики кнопок высоты
-        heightUp.addEventListener('click', () => updateHeight(heightStep));
-        heightDown.addEventListener('click', () => updateHeight(-heightStep));
 
         // Добавляем обработчик жестов масштабирования
         let initialDistance = 0;
@@ -380,19 +244,9 @@
               // Запускаем AR
               await modelViewer.activateAR();
               loading.classList.add('hidden');
-              
-              // Добавляем обработчик для быстрого обнаружения QR-кода
-              modelViewer.addEventListener('ar-tracking', (event) => {
-                if (event.detail.status === 'tracking') {
-                  arPrompt.classList.add('hidden');
-                } else {
-                  arPrompt.classList.remove('hidden');
-                }
-              });
             }
           } catch (error) {
             console.error('Ошибка при запуске AR:', error);
-            arPrompt.textContent = 'Ошибка запуска AR. Пожалуйста, перезагрузите страницу.';
           }
         }
 
@@ -425,9 +279,9 @@
         // Обработка событий AR
         modelViewer.addEventListener('ar-status', (event) => {
           if (event.detail.status === 'session-started') {
-            arPrompt.classList.add('hidden');
+            loading.classList.add('hidden');
           } else if (event.detail.status === 'not-tracking') {
-            arPrompt.classList.remove('hidden');
+            loading.classList.remove('hidden');
           }
         });
 
@@ -440,44 +294,12 @@
         if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
           modelViewer.addEventListener('ar-tracking', (event) => {
             if (event.detail.status === 'tracking') {
-              arPrompt.classList.add('hidden');
+              loading.classList.add('hidden');
             } else {
-              arPrompt.classList.remove('hidden');
+              loading.classList.remove('hidden');
             }
           });
         }
-
-        // Функция для показа галочки
-        function showCheckmark() {
-          checkmark.classList.add('visible');
-          setTimeout(() => {
-            arPrompt.classList.add('hidden');
-          }, 1000);
-        }
-
-        // Функция для скрытия галочки
-        function hideCheckmark() {
-          checkmark.classList.remove('visible');
-          arPrompt.classList.remove('hidden');
-        }
-
-        // Обновляем обработчик ar-tracking
-        modelViewer.addEventListener('ar-tracking', (event) => {
-          if (event.detail.status === 'tracking') {
-            showCheckmark();
-          } else {
-            hideCheckmark();
-          }
-        });
-
-        // Обновляем обработчик ar-status
-        modelViewer.addEventListener('ar-status', (event) => {
-          if (event.detail.status === 'session-started') {
-            arPrompt.classList.add('hidden');
-          } else if (event.detail.status === 'not-tracking') {
-            hideCheckmark();
-          }
-        });
       });
     </script>
   </body>
