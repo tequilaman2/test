@@ -89,11 +89,65 @@
         transform: translate(-50%, -50%);
         background: rgba(0, 0, 0, 0.8);
         color: white;
-        padding: 15px 25px;
-        border-radius: 10px;
+        padding: 20px 30px;
+        border-radius: 15px;
         text-align: center;
         z-index: 1000;
         font-size: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .checkmark {
+        width: 50px;
+        height: 50px;
+        border-radius: 25px;
+        background: #34C759;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(0.5);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .checkmark.visible {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .checkmark svg {
+        width: 30px;
+        height: 30px;
+        fill: white;
+      }
+
+      .ar-prompt-text {
+        margin: 0;
+        font-weight: 500;
+      }
+
+      .ar-prompt.hidden {
+        display: none;
+      }
+
+      @keyframes checkmarkAnimation {
+        0% {
+          transform: scale(0.5);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
       }
 
       .loading {
@@ -223,7 +277,12 @@
     </div>
 
     <div class="ar-prompt" id="ar-prompt">
-      Наведите камеру на QR-код для размещения модели
+      <div class="checkmark" id="checkmark">
+        <svg viewBox="0 0 24 24">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+      </div>
+      <p class="ar-prompt-text">Наведите камеру на QR-код для размещения модели</p>
     </div>
 
     <script>
@@ -231,6 +290,7 @@
         const modelViewer = document.querySelector('#model-viewer');
         const carouselItems = document.querySelectorAll('.carousel-item');
         const arPrompt = document.querySelector('#ar-prompt');
+        const checkmark = document.querySelector('#checkmark');
         const loading = document.querySelector('#loading');
         const cameraPreview = document.querySelector('#camera-preview');
         const heightUp = document.querySelector('#height-up');
@@ -324,9 +384,9 @@
               // Добавляем обработчик для быстрого обнаружения QR-кода
               modelViewer.addEventListener('ar-tracking', (event) => {
                 if (event.detail.status === 'tracking') {
-                  arPrompt.style.display = 'none';
+                  arPrompt.classList.add('hidden');
                 } else {
-                  arPrompt.style.display = 'block';
+                  arPrompt.classList.remove('hidden');
                 }
               });
             }
@@ -365,9 +425,9 @@
         // Обработка событий AR
         modelViewer.addEventListener('ar-status', (event) => {
           if (event.detail.status === 'session-started') {
-            arPrompt.style.display = 'none';
+            arPrompt.classList.add('hidden');
           } else if (event.detail.status === 'not-tracking') {
-            arPrompt.style.display = 'block';
+            arPrompt.classList.remove('hidden');
           }
         });
 
@@ -380,12 +440,44 @@
         if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
           modelViewer.addEventListener('ar-tracking', (event) => {
             if (event.detail.status === 'tracking') {
-              arPrompt.style.display = 'none';
+              arPrompt.classList.add('hidden');
             } else {
-              arPrompt.style.display = 'block';
+              arPrompt.classList.remove('hidden');
             }
           });
         }
+
+        // Функция для показа галочки
+        function showCheckmark() {
+          checkmark.classList.add('visible');
+          setTimeout(() => {
+            arPrompt.classList.add('hidden');
+          }, 1000);
+        }
+
+        // Функция для скрытия галочки
+        function hideCheckmark() {
+          checkmark.classList.remove('visible');
+          arPrompt.classList.remove('hidden');
+        }
+
+        // Обновляем обработчик ar-tracking
+        modelViewer.addEventListener('ar-tracking', (event) => {
+          if (event.detail.status === 'tracking') {
+            showCheckmark();
+          } else {
+            hideCheckmark();
+          }
+        });
+
+        // Обновляем обработчик ar-status
+        modelViewer.addEventListener('ar-status', (event) => {
+          if (event.detail.status === 'session-started') {
+            arPrompt.classList.add('hidden');
+          } else if (event.detail.status === 'not-tracking') {
+            hideCheckmark();
+          }
+        });
       });
     </script>
   </body>
