@@ -170,6 +170,11 @@
           auto-rotate
           quick-look-browsers="safari chrome"
           ar-button
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-scale="auto"
+          ar-placement="floor"
+          ios-src="models/model.usdz"
         ></model-viewer>
       </div>
       <div class="carousel-item" data-model="models/volvo_240.glb" data-ios-model="models/volvo_240.usdz">
@@ -179,6 +184,11 @@
           auto-rotate
           quick-look-browsers="safari chrome"
           ar-button
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-scale="auto"
+          ar-placement="floor"
+          ios-src="models/volvo_240.usdz"
         ></model-viewer>
       </div>
       <div class="carousel-item" data-model="models/apple.glb" data-ios-model="models/apple.usdz">
@@ -188,6 +198,11 @@
           auto-rotate
           quick-look-browsers="safari chrome"
           ar-button
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          ar-scale="auto"
+          ar-placement="floor"
+          ios-src="models/apple.usdz"
         ></model-viewer>
       </div>
     </div>
@@ -251,12 +266,30 @@
           }
         }
 
+        // Проверяем поддержку Quick Look
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) {
+          // Добавляем обработчик для Quick Look
+          carouselItems.forEach(item => {
+            const viewer = item.querySelector('model-viewer');
+            viewer.addEventListener('click', () => {
+              if (viewer.canActivateAR) {
+                viewer.activateAR();
+              }
+            });
+          });
+        }
+
         // Функция для быстрой смены модели
         function switchModel(model, iosModel) {
           modelViewer.src = model;
           if (iosModel) {
             modelViewer.iosSrc = iosModel;
           }
+          // Обновляем параметры AR
+          modelViewer.arScale = 'auto';
+          modelViewer.arPlacement = 'floor';
+          modelViewer.arTracking = 'marker';
         }
 
         // Функция для автоматического запуска AR
