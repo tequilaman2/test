@@ -222,9 +222,37 @@
         let lastCheckTime = 0;
         let errorCount = 0;
         let modelsLoaded = {};
+        let loadingTimeout = null;
         const MAX_ERRORS = 3;
         const SCAN_TIMEOUT = 20000; // 20 секунд максимальное время сканирования
+        const LOADING_TIMEOUT = 10000; // 10 секунд максимальное время отображения загрузки
         let scanTimeoutId = null;
+
+        // Функция для управления загрузчиком
+        function showLoading(message = 'Загрузка AR...') {
+          // Очищаем предыдущий таймаут, если он есть
+          if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+          }
+          
+          // Показываем загрузчик с указанным сообщением
+          loading.textContent = message;
+          loading.classList.remove('hidden');
+          
+          // Устанавливаем таймаут для автоматического скрытия загрузчика
+          loadingTimeout = setTimeout(() => {
+            console.warn('Таймаут загрузки, скрываем индикатор');
+            loading.classList.add('hidden');
+          }, LOADING_TIMEOUT);
+        }
+
+        function hideLoading() {
+          if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+            loadingTimeout = null;
+          }
+          loading.classList.add('hidden');
+        }
 
         // Функция для запуска камеры
         async function startCamera() {
@@ -233,6 +261,8 @@
             if (videoStream) {
               videoStream.getTracks().forEach(track => track.stop());
             }
+
+            showLoading('Запуск камеры...');
 
             // Запросить доступ к камере
             const constraints = { 
@@ -250,6 +280,7 @@
             
             cameraPreview.addEventListener('loadeddata', () => {
               console.log('Камера запущена, разрешение:', cameraPreview.videoWidth, 'x', cameraPreview.videoHeight);
+              hideLoading();
             });
             
             // Дождаться загрузки видео
@@ -261,10 +292,12 @@
                 
                 // Запускаем видео
                 cameraPreview.play().then(() => {
+                  hideLoading();
                   resolve();
                 }).catch(err => {
                   console.error('Ошибка воспроизведения видео:', err);
                   arHint.textContent = 'Ошибка запуска камеры. Перезагрузите страницу.';
+                  hideLoading();
                   resolve(); // Продолжаем работу для обработки ошибки
                 });
               };
@@ -273,12 +306,14 @@
               cameraPreview.onerror = (err) => {
                 console.error('Ошибка загрузки видео:', err);
                 arHint.textContent = 'Ошибка камеры. Проверьте разрешения и перезагрузите страницу.';
+                hideLoading();
                 resolve(); // Продолжаем работу для обработки ошибки
               };
             });
           } catch (error) {
             console.error('Ошибка доступа к камере:', error);
             arHint.textContent = 'Ошибка доступа к камере. Проверьте разрешения.';
+            hideLoading();
             throw error;
           }
         }
@@ -398,6 +433,8 @@
               // Останавливаем сканирование
               stopScanning();
               
+              showLoading('Запуск AR...');
+              
               // Настраиваем AR для iOS
               const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
               if (isIOS) {
@@ -417,12 +454,15 @@
               
               await Promise.race([arPromise, timeoutPromise]);
               arHint.classList.add('hidden');
+              hideLoading();
             } else {
               arHint.textContent = 'AR не поддерживается на вашем устройстве';
+              hideLoading();
             }
           } catch (error) {
             console.error('Ошибка при запуске AR:', error);
             arHint.textContent = 'Ошибка запуска AR: ' + error.message;
+            hideLoading();
             
             // Добавляем кнопку для повторной попытки
             setTimeout(() => {
@@ -434,7 +474,7 @@
 
         // Функция для смены модели
         function switchModel(modelPath, iosModelPath) {
-          loading.classList.remove('hidden');
+          showLoading('Загрузка модели...');
           
           // Если модель уже загружена ранее, устанавливаем флаг
           const modelKey = modelPath + '|' + iosModelPath;
@@ -447,7 +487,7 @@
           
           // Если модель уже была загружена, скрываем загрузчик сразу
           if (isPreloaded) {
-            loading.classList.add('hidden');
+            hideLoading();
           }
           
           // Запоминаем, что эта модель была загружена
@@ -515,6 +555,14 @@
 
         // Инициализация
         try {
+          // Скрываем загрузчик через таймаут, если он не скроется сам
+          setTimeout(() => {
+            if (!loading.classList.contains('hidden')) {
+              console.warn('Принудительно скрываем загрузчик');
+              hideLoading();
+            }
+          }, LOADING_TIMEOUT);
+          
           // Проверяем совместимость с AR
           checkARCompatibility();
           
@@ -560,13 +608,16 @@
           
           // Обработка загрузки модели
           modelViewer.addEventListener('load', () => {
-            loading.classList.add('hidden');
+            console.log('Модель загружена');
+            hideLoading();
           });
           
           // Обработка ошибок загрузки модели
           modelViewer.addEventListener('error', (error) => {
             console.error('Ошибка загрузки модели:', error);
             loading.textContent = 'Ошибка загрузки модели. Попробуйте еще раз.';
+            // Скрываем ошибку через 3 секунды
+            setTimeout(hideLoading, 3000);
           });
           
           // Устанавливаем активную модель по умолчанию
@@ -596,6 +647,7 @@
         } catch (error) {
           console.error('Ошибка инициализации:', error);
           arHint.textContent = 'Ошибка инициализации: ' + error.message;
+          hideLoading();
         }
       });
     </script>
