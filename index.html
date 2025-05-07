@@ -2,10 +2,11 @@
 <html lang="">
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <script nomodule src="https://unpkg.com/@google/model-viewer/dist/model-viewer-legacy.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
   <head>
     <meta charset="utf-8">
-    <title>AR TEST</title>
+    <title>AR Showcase</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -13,7 +14,7 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden; /* Prevent scrollbars that might appear due to resizing */
+        overflow: hidden;
       }
 
       body {
@@ -25,9 +26,8 @@
       }
 
       model-viewer {
-        /* Remove fixed height and width to allow for more flexible scaling */
-        width: 100%; /* Ensure it doesn't exceed screen width */
-        height: 100%; /* Allow some space for the slider */
+        width: 100%;
+        height: 100%;
       }
 
       .ar-prompt {
@@ -57,16 +57,45 @@
         100% { transform: translateY(0); }
       }
 
-      .links {
-        width: 100%;
-        height: 10%;
-        text-align: center;
+      .carousel {
         position: fixed;
-        bottom: 16px;
-        justify-content: space-between;
-        padding: 0 10px; /* Add some padding on the sides */
-        box-sizing: border-box; /* Include padding in width calculation */
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+
+      .carousel-item {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .carousel-item.active {
+        border-color: #007AFF;
+      }
+
+      .carousel-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .links {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
       }
 
       .link {
@@ -74,31 +103,35 @@
         background-repeat: no-repeat;
         background-position: center;
         background-color: #fff;
-        border-radius: 0px;
+        border-radius: 50%;
         border: none;
-        width: 30%; /* Adjust width as needed */
-        height: 100%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
       }
 
-      button[slot="ar-button"] {
-        background-color: white;
+      .qr-overlay {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 20px;
         border-radius: 10px;
-        border: none;
-        position: absolute;
-        top: 40px;
-        right: 20px; /* Adjust right margin */
-        width: auto; /* Adjust width to content */
-        padding: 10px 15px; /* Add some padding */
-        font-size: 4vw; /* Adjust font size for mobile */
-        aspect-ratio: auto; /* Remove fixed aspect ratio */
+        text-align: center;
+        display: none;
+      }
+
+      .qr-overlay.visible {
+        display: block;
       }
     </style>
-
-    
-
   </head>
   <body>
     <model-viewer 
+      id="model-viewer"
       src="models/cat.glb" 
       ios-src="models/cat.usdz"
       ar
@@ -117,91 +150,126 @@
       field-of-view="30deg"
       min-camera-orbit="auto auto auto"
       max-camera-orbit="auto auto auto"
+      ar-tracking="marker"
     >
       <div class="ar-prompt" slot="ar-prompt">
-        <img src="prompt.svg" alt="Наведите камеру на поверхность">
-      </div>
-
-      <div class="links">
-        <button class="link" onclick="document.location.href = 'mailto:info@alphawood.store';" style="background-image:url('em.png'); background-color: transparent;">
-        </button>
-        <button class="link" onclick="document.location.href = 'https://www.alphawood.store/';" style="background-image:url('site.png'); background-color: transparent;">
-        </button>
+        <img src="prompt.svg" alt="Наведите камеру на QR-код">
       </div>
     </model-viewer>
 
-    <script type="module">
-      const modelViewer = document.querySelector("model-viewer");
+    <div class="qr-overlay" id="qr-overlay">
+      Наведите камеру на QR-код для размещения модели
+    </div>
 
-      const arButton = document.getElementById('click');
+    <div class="carousel">
+      <div class="carousel-item active" data-model="models/cat.glb" data-ios-model="models/cat.usdz">
+        <img src="thumbnails/cat.jpg" alt="Кошка">
+      </div>
+      <div class="carousel-item" data-model="models/volvo_240.glb">
+        <img src="thumbnails/volvo.jpg" alt="Volvo">
+      </div>
+      <div class="carousel-item" data-model="models/apple.glb">
+        <img src="thumbnails/apple.jpg" alt="Яблоко">
+      </div>
+    </div>
 
-      const models = ["models/model.glb", "models/apple.glb"];
-      let i = 0;
-      window.switchSrc = (element, name) => {
-        if (name === "add" && i < models.length - 1) {
-          i++;
-        }
-        if (name === "sub" && i > 0) {
-          i--;
-        }
-        modelViewer.src = models[i];
-      };
-    </script>
+    <div class="links">
+      <button class="link" onclick="document.location.href = 'mailto:info@alphawood.store';" style="background-image:url('em.png'); background-color: transparent;">
+      </button>
+      <button class="link" onclick="document.location.href = 'https://www.alphawood.store/';" style="background-image:url('site.png'); background-color: transparent;">
+      </button>
+    </div>
 
-<script>
-
-  if (navigator.userAgent.includes("iPhone") || navigator.userAgent.includes("iPad")) {
-    console.log("iOS detected");
-    document.getElementById("ar_button").innerHTML ="<a rel='ar' slot='ar-button' href='https://tequilaman2.github.io/test/models/model.usdz#applePayButtonType=plain&canonicalWebPageURL=https://www.alphawood.store/'> <button slot='ar-button'>👋 Activate Quick View </button>  </a>";
-
-  } else {
-    console.log("Android or ets detected");
-    document.getElementById("ar_button").outerHTML = "<button slot='ar-button' id = 'click'>👋 Activate AR</button>"
-  }
-
-  // Функция для автоматического запуска AR
-  async function startAR() {
-    try {
-      // Запрашиваем разрешение на использование камеры
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      stream.getTracks().forEach(track => track.stop()); // Останавливаем поток после получения разрешения
+    <script>
+      const modelViewer = document.querySelector('#model-viewer');
+      const carouselItems = document.querySelectorAll('.carousel-item');
+      const qrOverlay = document.querySelector('#qr-overlay');
       
-      // Запускаем AR
-      if (modelViewer.canActivateAR) {
-        await modelViewer.activateAR();
+      // Функция для инициализации QR-сканирования
+      async function initQRScanner() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            } 
+          });
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          const video = document.createElement('video');
+          video.srcObject = stream;
+          video.play();
+
+          function processFrame() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+              
+              const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+              const code = jsQR(imageData.data, imageData.width, imageData.height);
+              
+              if (code) {
+                console.log('QR-код найден:', code.data);
+                if (modelViewer.canActivateAR) {
+                  modelViewer.activateAR();
+                  qrOverlay.classList.remove('visible');
+                }
+              }
+            }
+            requestAnimationFrame(processFrame);
+          }
+
+          processFrame();
+        } catch (error) {
+          console.error('Ошибка при инициализации QR-сканера:', error);
+          qrOverlay.classList.add('visible');
+        }
       }
-    } catch (error) {
-      console.error('Ошибка при запуске AR:', error);
-    }
-  }
 
-  // Проверяем, является ли устройство мобильным
-  function isMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  }
+      // Обработка кликов по карусели
+      carouselItems.forEach(item => {
+        item.addEventListener('click', () => {
+          carouselItems.forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          
+          const model = item.dataset.model;
+          const iosModel = item.dataset.iosModel;
+          
+          modelViewer.src = model;
+          if (iosModel) {
+            modelViewer.iosSrc = iosModel;
+          }
+        });
+      });
 
-  // Автоматически запускаем AR на мобильных устройствах
-  if (isMobile()) {
-    // Даем небольшую задержку для загрузки модели
-    setTimeout(startAR, 1000);
-  }
+      // Проверяем, является ли устройство мобильным
+      function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      }
 
-  // Обработка событий AR
-  modelViewer.addEventListener('ar-status', (event) => {
-    if (event.detail.status === 'session-started') {
-      console.log('AR сессия началась');
-    } else if (event.detail.status === 'not-tracking') {
-      console.log('Потеря отслеживания поверхности');
-    }
-  });
+      // Инициализируем QR-сканер на мобильных устройствах
+      if (isMobile()) {
+        setTimeout(initQRScanner, 1000);
+      }
 
-  // Обработка загрузки модели
-  modelViewer.addEventListener('load', () => {
-    console.log('Модель загружена');
-  });
+      // Обработка событий AR
+      modelViewer.addEventListener('ar-status', (event) => {
+        if (event.detail.status === 'session-started') {
+          console.log('AR сессия началась');
+          qrOverlay.classList.remove('visible');
+        } else if (event.detail.status === 'not-tracking') {
+          console.log('Потеря отслеживания QR-кода');
+          qrOverlay.classList.add('visible');
+        }
+      });
 
-</script>
-
-
+      // Обработка загрузки модели
+      modelViewer.addEventListener('load', () => {
+        console.log('Модель загружена');
+      });
+    </script>
   </body>
 </html>
