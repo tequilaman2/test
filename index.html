@@ -207,7 +207,7 @@
 
     <div class="carousel">
       <div class="carousel-item active" data-model="models/model.glb" data-ios-model="models/model.glb">
-        <a href="models/model.glb" rel="ar">
+        <a href="models/model.glb" rel="ar" id="ar-link">
           <model-viewer 
             src="models/model.glb" 
             camera-controls 
@@ -238,7 +238,7 @@
         </a>
       </div>
       <div class="carousel-item" data-model="models/volvo_240.glb" data-ios-model="models/volvo_240.glb">
-        <a href="models/volvo_240.glb" rel="ar">
+        <a href="models/volvo_240.glb" rel="ar" id="ar-link">
           <model-viewer 
             src="models/volvo_240.glb" 
             camera-controls 
@@ -269,7 +269,7 @@
         </a>
       </div>
       <div class="carousel-item" data-model="models/apple.glb" data-ios-model="models/apple.glb">
-        <a href="models/apple.glb" rel="ar">
+        <a href="models/apple.glb" rel="ar" id="ar-link">
           <model-viewer 
             src="models/apple.glb" 
             camera-controls 
@@ -404,8 +404,8 @@
             if (isIOS) {
               // На iOS открываем Quick Look
               e.preventDefault();
-              if (link) {
-                window.location.href = link.href;
+              if (viewer.canActivateAR) {
+                viewer.activateAR();
               }
             }
           });
