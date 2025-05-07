@@ -56,15 +56,14 @@
 
       .carousel-item {
         flex: 0 0 auto;
-        width: 120px;
-        height: 120px;
-        border-radius: 12px;
+        width: 100px;
+        height: 100px;
+        border-radius: 8px;
         cursor: pointer;
         transition: all 0.3s ease;
         background: rgba(255, 255, 255, 0.1);
         border: 2px solid transparent;
         overflow: hidden;
-        position: relative;
       }
 
       .carousel-item model-viewer {
@@ -73,43 +72,14 @@
         --poster-color: transparent;
         --progress-bar-color: #007AFF;
         --progress-bar-height: 2px;
-        background-color: transparent;
       }
 
       .carousel-item:hover {
         transform: scale(1.05);
-        border-color: #007AFF;
       }
 
       .carousel-item.active {
         border-color: #007AFF;
-        box-shadow: 0 0 15px rgba(0, 122, 255, 0.3);
-      }
-
-      .carousel-item .model-name {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 5px;
-        font-size: 12px;
-        text-align: center;
-      }
-
-      .ar-prompt {
-        position: fixed;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 15px 25px;
-        border-radius: 10px;
-        text-align: center;
-        z-index: 1000;
-        font-size: 16px;
       }
 
       .loading {
@@ -140,33 +110,6 @@
         object-fit: cover;
         z-index: -1;
       }
-
-      .carousel-item a {
-        display: block;
-        width: 100%;
-        height: 100%;
-        text-decoration: none;
-        color: inherit;
-      }
-
-      .carousel-item a:hover {
-        text-decoration: none;
-      }
-
-      /* Скрываем иконку AR */
-      model-viewer::part(default-ar-button) {
-        display: none;
-      }
-
-      /* Скрываем подсказки взаимодействия */
-      model-viewer::part(interaction-prompt) {
-        display: none;
-      }
-
-      /* Скрываем кнопку AR в карусели */
-      .carousel-item model-viewer::part(default-ar-button) {
-        display: none;
-      }
     </style>
   </head>
   <body>
@@ -176,8 +119,8 @@
     <div class="model-viewer-container">
       <model-viewer 
         id="model-viewer"
-        src="models/model.glb"
-        ios-src="models/model.glb"
+        src="models/cat.glb"
+        ios-src="models/cat.usdz"
         ar
         ar-modes="webxr scene-viewer quick-look"
         ar-scale="auto"
@@ -187,7 +130,7 @@
         shadow-softness="1"
         camera-controls
         auto-rotate
-        interaction-prompt="none"
+        interaction-prompt="auto"
         xr-environment
         ar-status="not-presenting"
         camera-orbit="45deg 55deg 2.5m"
@@ -195,109 +138,26 @@
         min-camera-orbit="auto auto auto"
         max-camera-orbit="auto auto auto"
         ar-tracking="marker"
-        touch-action="pan-y pinch-zoom"
+        touch-action="pan-y"
         min-scale="0.1"
         max-scale="10"
         scale="1"
         scale-step="0.1"
         pinch-to-zoom
+        touch-action="pan-y pinch-zoom"
       >
       </model-viewer>
     </div>
 
     <div class="carousel">
-      <div class="carousel-item active" data-model="models/model.glb" data-ios-model="models/model.glb">
-        <a href="models/model.glb" rel="ar" id="ar-link">
-          <model-viewer 
-            src="models/model.glb" 
-            camera-controls 
-            auto-rotate
-            quick-look-browsers="safari chrome"
-            ar-button
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            ar-scale="auto"
-            ar-placement="floor"
-            ios-src="models/model.glb"
-            camera-orbit="45deg 55deg 2.5m"
-            field-of-view="30deg"
-            min-camera-orbit="auto auto auto"
-            max-camera-orbit="auto auto auto"
-            ar-tracking="marker"
-            touch-action="pan-y pinch-zoom"
-            min-scale="0.1"
-            max-scale="10"
-            scale="1"
-            scale-step="0.1"
-            pinch-to-zoom
-            interaction-prompt="none"
-            ar-button
-            ar-status="not-presenting"
-          ></model-viewer>
-          <div class="model-name">Стул</div>
-        </a>
+      <div class="carousel-item active" data-model="models/cat.glb" data-ios-model="models/cat.usdz">
+        <model-viewer src="models/cat.glb" camera-controls auto-rotate></model-viewer>
       </div>
-      <div class="carousel-item" data-model="models/volvo_240.glb" data-ios-model="models/volvo_240.glb">
-        <a href="models/volvo_240.glb" rel="ar" id="ar-link">
-          <model-viewer 
-            src="models/volvo_240.glb" 
-            camera-controls 
-            auto-rotate
-            quick-look-browsers="safari chrome"
-            ar-button
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            ar-scale="auto"
-            ar-placement="floor"
-            ios-src="models/volvo_240.glb"
-            camera-orbit="45deg 55deg 2.5m"
-            field-of-view="30deg"
-            min-camera-orbit="auto auto auto"
-            max-camera-orbit="auto auto auto"
-            ar-tracking="marker"
-            touch-action="pan-y pinch-zoom"
-            min-scale="0.1"
-            max-scale="10"
-            scale="1"
-            scale-step="0.1"
-            pinch-to-zoom
-            interaction-prompt="none"
-            ar-button
-            ar-status="not-presenting"
-          ></model-viewer>
-          <div class="model-name">Volvo 240</div>
-        </a>
+      <div class="carousel-item" data-model="models/volvo_240.glb" data-ios-model="models/volvo_240.usdz">
+        <model-viewer src="models/volvo_240.glb" camera-controls auto-rotate></model-viewer>
       </div>
-      <div class="carousel-item" data-model="models/apple.glb" data-ios-model="models/apple.glb">
-        <a href="models/apple.glb" rel="ar" id="ar-link">
-          <model-viewer 
-            src="models/apple.glb" 
-            camera-controls 
-            auto-rotate
-            quick-look-browsers="safari chrome"
-            ar-button
-            ar
-            ar-modes="webxr scene-viewer quick-look"
-            ar-scale="auto"
-            ar-placement="floor"
-            ios-src="models/apple.glb"
-            camera-orbit="45deg 55deg 2.5m"
-            field-of-view="30deg"
-            min-camera-orbit="auto auto auto"
-            max-camera-orbit="auto auto auto"
-            ar-tracking="marker"
-            touch-action="pan-y pinch-zoom"
-            min-scale="0.1"
-            max-scale="10"
-            scale="1"
-            scale-step="0.1"
-            pinch-to-zoom
-            interaction-prompt="none"
-            ar-button
-            ar-status="not-presenting"
-          ></model-viewer>
-          <div class="model-name">Яблоко</div>
-        </a>
+      <div class="carousel-item" data-model="models/apple.glb" data-ios-model="models/apple.usdz">
+        <model-viewer src="models/apple.glb" camera-controls auto-rotate></model-viewer>
       </div>
     </div>
 
@@ -308,7 +168,7 @@
         const loading = document.querySelector('#loading');
         const cameraPreview = document.querySelector('#camera-preview');
 
-        // Добавляем обработчик жестов масштабирования для AR
+        // Добавляем обработчик жестов масштабирования
         let initialDistance = 0;
         let initialScale = 1;
 
@@ -334,16 +194,6 @@
           }
         });
 
-        // Добавляем обработчик для AR режима
-        modelViewer.addEventListener('ar-status', (event) => {
-          if (event.detail.status === 'session-started') {
-            // Включаем масштабирование в AR
-            modelViewer.arScale = 'auto';
-            modelViewer.minScale = 0.1;
-            modelViewer.maxScale = 10;
-          }
-        });
-
         // Функция для запуска камеры
         async function startCamera() {
           try {
@@ -360,67 +210,12 @@
           }
         }
 
-        // Добавляем обработчик двойного нажатия для Quick Look
-        let lastTap = 0;
-        carouselItems.forEach(item => {
-          const viewer = item.querySelector('model-viewer');
-          viewer.addEventListener('click', (e) => {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-            if (tapLength < 300 && tapLength > 0) {
-              // Двойное нажатие
-              if (viewer.canActivateAR) {
-                // Настраиваем параметры для Quick Look
-                viewer.arScale = 'auto';
-                viewer.arPlacement = 'floor';
-                viewer.arTracking = 'marker';
-                viewer.activateAR();
-              }
-              e.preventDefault();
-            }
-            lastTap = currentTime;
-          });
-        });
-
-        // Обработчик выбора модели
-        carouselItems.forEach(item => {
-          const viewer = item.querySelector('model-viewer');
-          const link = item.querySelector('a');
-          
-          // Обработка клика по модели
-          item.addEventListener('click', (e) => {
-            // Убираем активный класс у всех элементов
-            carouselItems.forEach(i => i.classList.remove('active'));
-            // Добавляем активный класс выбранному элементу
-            item.classList.add('active');
-            
-            // Меняем модель в основном viewer
-            const model = item.dataset.model;
-            const iosModel = item.dataset.iosModel;
-            switchModel(model, iosModel);
-
-            // Проверяем, является ли устройство iOS
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS) {
-              // На iOS открываем Quick Look
-              e.preventDefault();
-              if (viewer.canActivateAR) {
-                viewer.activateAR();
-              }
-            }
-          });
-        });
-
         // Функция для быстрой смены модели
         function switchModel(model, iosModel) {
           modelViewer.src = model;
           if (iosModel) {
             modelViewer.iosSrc = iosModel;
           }
-          // Обновляем параметры AR
-          modelViewer.arScale = 'auto';
-          modelViewer.arPlacement = 'floor';
-          modelViewer.arTracking = 'marker';
         }
 
         // Функция для автоматического запуска AR
@@ -444,6 +239,22 @@
         // Запускаем камеру
         startCamera();
 
+        // Обработчик выбора модели
+        carouselItems.forEach(item => {
+          item.addEventListener('click', () => {
+            carouselItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            switchModel(item.dataset.model, item.dataset.iosModel);
+            
+            // Проверяем, является ли устройство iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+              // На iOS запускаем AR сразу после выбора модели
+              startAR();
+            }
+          });
+        });
+
         // Проверяем, является ли устройство мобильным
         if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
           loading.classList.add('hidden');
@@ -451,30 +262,10 @@
           loading.textContent = 'AR доступен только на мобильных устройствах';
         }
 
-        // Обработка событий AR
-        modelViewer.addEventListener('ar-status', (event) => {
-          if (event.detail.status === 'session-started') {
-            loading.classList.add('hidden');
-          } else if (event.detail.status === 'not-tracking') {
-            loading.classList.remove('hidden');
-          }
-        });
-
         // Обработка загрузки модели
         modelViewer.addEventListener('load', () => {
           loading.classList.add('hidden');
         });
-
-        // Добавляем обработчик для быстрого обнаружения QR-кода на iOS
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
-          modelViewer.addEventListener('ar-tracking', (event) => {
-            if (event.detail.status === 'tracking') {
-              loading.classList.add('hidden');
-            } else {
-              loading.classList.remove('hidden');
-            }
-          });
-        }
       });
     </script>
   </body>
