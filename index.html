@@ -96,7 +96,7 @@
 
   </head>
   <body>
-    <model-viewer src="/models/cat.glb" ios-src="/models/cat.usdz" ar camera-controls tone-mapping="neutral" shadow-intensity="1" autoplay animation-name="rotate">
+    <model-viewer src="models/cat.glb" ios-src="models/cat.usdz" ar camera-controls tone-mapping="neutral" shadow-intensity="1" autoplay animation-name="rotate">
       <div id = "ar_button">
       <button slot="ar-button" id = "click">
         👋 Activate AR
@@ -126,7 +126,7 @@
 
       const arButton = document.getElementById('click');
 
-      const models = ["/models/model.glb", "/models/apple.glb"];
+      const models = ["models/model.glb", "models/apple.glb"];
       let i = 0;
       window.switchSrc = (element, name) => {
         if (name === "add" && i < models.length - 1) {
