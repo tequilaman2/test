@@ -213,8 +213,23 @@
         async function startAR() {
           try {
             if (modelViewer.canActivateAR) {
+              // Настраиваем параметры AR для iOS
+              modelViewer.arScale = 'fixed';
+              modelViewer.arPlacement = 'floor';
+              modelViewer.arTracking = 'marker';
+              
+              // Запускаем AR
               await modelViewer.activateAR();
               loading.classList.add('hidden');
+              
+              // Добавляем обработчик для быстрого обнаружения QR-кода
+              modelViewer.addEventListener('ar-tracking', (event) => {
+                if (event.detail.status === 'tracking') {
+                  arPrompt.style.display = 'none';
+                } else {
+                  arPrompt.style.display = 'block';
+                }
+              });
             }
           } catch (error) {
             console.error('Ошибка при запуске AR:', error);
@@ -231,7 +246,13 @@
             carouselItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             switchModel(item.dataset.model, item.dataset.iosModel);
-            startAR();
+            
+            // Проверяем, является ли устройство iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+              // На iOS запускаем AR сразу после выбора модели
+              startAR();
+            }
           });
         });
 
@@ -255,6 +276,17 @@
         modelViewer.addEventListener('load', () => {
           loading.classList.add('hidden');
         });
+
+        // Добавляем обработчик для быстрого обнаружения QR-кода на iOS
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+          modelViewer.addEventListener('ar-tracking', (event) => {
+            if (event.detail.status === 'tracking') {
+              arPrompt.style.display = 'none';
+            } else {
+              arPrompt.style.display = 'block';
+            }
+          });
+        }
       });
     </script>
   </body>
