@@ -7,7 +7,6 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>AR Viewer</title>
     <style>
       body {
@@ -18,8 +17,6 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         height: 100vh;
         overflow: hidden;
-        -webkit-user-select: none;
-        user-select: none;
       }
 
       .model-viewer-container {
@@ -32,7 +29,6 @@
         width: 100%;
         height: 100%;
         background-color: transparent;
-        --poster-color: transparent;
       }
 
       .carousel {
@@ -86,6 +82,39 @@
         border-color: #007AFF;
       }
 
+      .loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 18px;
+        z-index: 2000;
+      }
+
+      .loading.hidden {
+        display: none;
+      }
+
+      #camera-preview {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1;
+      }
+
+      #qr-canvas {
+        display: none;
+      }
+
       .ar-hint {
         position: fixed;
         left: 50%;
@@ -121,60 +150,6 @@
       .ar-launch-button:hover {
         background: #0056b3;
       }
-
-      .loading {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: white;
-        font-size: 18px;
-        z-index: 2000;
-      }
-
-      .loading.hidden {
-        display: none;
-      }
-
-      #camera-preview {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        z-index: -1;
-      }
-
-      #qr-canvas {
-        display: none;
-      }
-
-      .ar-button {
-        position: fixed;
-        bottom: 150px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #007AFF;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 12px 24px;
-        font-size: 18px;
-        font-weight: bold;
-        z-index: 1001;
-        cursor: pointer;
-        display: none;
-      }
-
-      .ar-button.visible {
-        display: block;
-      }
     </style>
   </head>
   <body>
@@ -182,7 +157,6 @@
     <canvas id="qr-canvas"></canvas>
     <div class="loading" id="loading">Загрузка AR...</div>
     <div class="ar-hint" id="ar-hint">Выберите модель внизу экрана</div>
-    <button id="ar-button" class="ar-button">Открыть в AR</button>
 
     <div class="model-viewer-container">
       <model-viewer 
@@ -190,24 +164,30 @@
         src="models/cat.glb"
         ios-src="models/cat.usdz"
         ar
-        ar-modes="scene-viewer quick-look"
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="auto"
+        ar-placement="floor"
+        environment-image="neutral"
+        shadow-intensity="1"
+        shadow-softness="1"
         camera-controls
         auto-rotate
-        shadow-intensity="1"
-        exposure="1"
-        environment-image="neutral"
-        ar-scale="auto"
-        autoplay
-        ar-placement="floor"
+        interaction-prompt="auto"
+        xr-environment
+        ar-status="not-presenting"
         camera-orbit="45deg 55deg 2.5m"
         field-of-view="30deg"
         min-camera-orbit="auto auto auto"
         max-camera-orbit="auto auto auto"
+        ar-tracking="marker"
         touch-action="pan-y"
         min-scale="0.1"
         max-scale="10"
         scale="1"
         scale-step="0.1"
+        pinch-to-zoom
+        touch-action="pan-y pinch-zoom"
+        quick-look-browsers="safari chrome"
       >
       </model-viewer>
     </div>
@@ -230,82 +210,393 @@
         const carouselItems = document.querySelectorAll('.carousel-item');
         const loading = document.querySelector('#loading');
         const arHint = document.querySelector('#ar-hint');
-        const arButton = document.querySelector('#ar-button');
+        const cameraPreview = document.querySelector('#camera-preview');
+        const qrCanvas = document.querySelector('#qr-canvas');
+        const ctx = qrCanvas.getContext('2d');
         
-        // Определяем устройство
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        const isIOSSafari = isIOS && isSafari;
-        
-        // Функция для смены модели
-        function switchModel(modelPath, iosModelPath) {
-          // Сначала удаляем все атрибуты AR
-          modelViewer.removeAttribute('ar');
-          modelViewer.removeAttribute('ar-modes');
-          modelViewer.removeAttribute('ar-scale');
-          modelViewer.removeAttribute('ar-placement');
-          
-          // Меняем модель
-          modelViewer.src = modelPath;
-          
-          if (iosModelPath) {
-            modelViewer.setAttribute('ios-src', iosModelPath);
+        let selectedModel = false;
+        let qrDetected = false;
+        let videoStream = null;
+        let isScanning = false;
+        let scanInterval = null;
+        let lastCheckTime = 0;
+        let errorCount = 0;
+        let modelsLoaded = {};
+        const MAX_ERRORS = 3;
+        const SCAN_TIMEOUT = 20000; // 20 секунд максимальное время сканирования
+        let scanTimeoutId = null;
+
+        // Функция для запуска камеры
+        async function startCamera() {
+          try {
+            // Остановить предыдущий поток, если он существует
+            if (videoStream) {
+              videoStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Запросить доступ к камере
+            const constraints = { 
+              video: { 
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 }
+              },
+              audio: false
+            };
+
+            videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+            cameraPreview.srcObject = videoStream;
+            
+            cameraPreview.addEventListener('loadeddata', () => {
+              console.log('Камера запущена, разрешение:', cameraPreview.videoWidth, 'x', cameraPreview.videoHeight);
+            });
+            
+            // Дождаться загрузки видео
+            return new Promise((resolve) => {
+              cameraPreview.onloadedmetadata = () => {
+                // Установить размеры канваса
+                qrCanvas.width = cameraPreview.videoWidth;
+                qrCanvas.height = cameraPreview.videoHeight;
+                
+                // Запускаем видео
+                cameraPreview.play().then(() => {
+                  resolve();
+                }).catch(err => {
+                  console.error('Ошибка воспроизведения видео:', err);
+                  arHint.textContent = 'Ошибка запуска камеры. Перезагрузите страницу.';
+                  resolve(); // Продолжаем работу для обработки ошибки
+                });
+              };
+              
+              // Обработка ошибок загрузки видео
+              cameraPreview.onerror = (err) => {
+                console.error('Ошибка загрузки видео:', err);
+                arHint.textContent = 'Ошибка камеры. Проверьте разрешения и перезагрузите страницу.';
+                resolve(); // Продолжаем работу для обработки ошибки
+              };
+            });
+          } catch (error) {
+            console.error('Ошибка доступа к камере:', error);
+            arHint.textContent = 'Ошибка доступа к камере. Проверьте разрешения.';
+            throw error;
+          }
+        }
+
+        // Функция для остановки сканирования
+        function stopScanning() {
+          if (scanInterval) {
+            clearInterval(scanInterval);
+            scanInterval = null;
           }
           
-          // Добавляем атрибуты AR обратно с небольшой задержкой
-          setTimeout(() => {
-            modelViewer.setAttribute('ar', '');
-            modelViewer.setAttribute('ar-modes', 'scene-viewer quick-look');
-            modelViewer.setAttribute('ar-scale', 'auto');
-            modelViewer.setAttribute('ar-placement', 'floor');
-            
-            // Специально для iOS
-            if (isIOS) {
-              arButton.classList.add('visible');
-              console.log('iOS устройство обнаружено, кнопка AR показана');
-            }
-          }, 300);
-        }
-        
-        // Обработчик кнопки AR для iOS
-        arButton.addEventListener('click', () => {
-          const iosModel = document.querySelector('.carousel-item.active').dataset.iosModel;
-          const modelUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1) + iosModel;
+          if (scanTimeoutId) {
+            clearTimeout(scanTimeoutId);
+            scanTimeoutId = null;
+          }
           
-          // Создаем и открываем ссылку на USDZ модель
-          window.location.href = modelUrl;
-        });
-        
-        // Обработчик выбора модели
-        carouselItems.forEach(item => {
-          item.addEventListener('click', () => {
-            carouselItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            
-            // Обновляем подсказку
-            arHint.textContent = 'Модель выбрана! Нажмите кнопку AR для просмотра';
-            
-            // Меняем модель
-            switchModel(item.dataset.model, item.dataset.iosModel);
-          });
-        });
-        
-        // Инициализация начальной модели
-        if (isIOS) {
-          arButton.classList.add('visible');
-          arHint.textContent = 'Выберите модель и нажмите кнопку AR';
+          isScanning = false;
         }
-        
-        // Убираем загрузку когда модель загружена
-        modelViewer.addEventListener('load', () => {
-          loading.classList.add('hidden');
+
+        // Функция для сканирования QR-кода
+        function scanQRCode() {
+          if (isScanning || !selectedModel) return;
+          
+          isScanning = true;
+          errorCount = 0;
+          console.log('Начало сканирования QR-кода');
+          
+          // Очистить предыдущий интервал
+          stopScanning();
+
+          // Устанавливаем таймаут для остановки сканирования
+          scanTimeoutId = setTimeout(() => {
+            if (isScanning) {
+              console.log('Тайм-аут сканирования QR-кода');
+              stopScanning();
+              arHint.textContent = 'QR-код не обнаружен. Нажмите здесь, чтобы попробовать снова.';
+              arHint.style.cursor = 'pointer';
+              arHint.addEventListener('click', () => {
+                arHint.textContent = 'Наведите камеру на QR-код';
+                arHint.style.cursor = 'default';
+                scanQRCode();
+              }, { once: true });
+            }
+          }, SCAN_TIMEOUT);
+
+          scanInterval = setInterval(() => {
+            const now = Date.now();
+            // Ограничиваем частоту проверок до 10 кадров в секунду
+            if (now - lastCheckTime < 100) return;
+            lastCheckTime = now;
+            
+            if (cameraPreview.readyState === cameraPreview.HAVE_ENOUGH_DATA) {
+              try {
+                // Рисуем видео на канвасе
+                qrCanvas.width = cameraPreview.videoWidth;
+                qrCanvas.height = cameraPreview.videoHeight;
+                ctx.drawImage(cameraPreview, 0, 0, qrCanvas.width, qrCanvas.height);
+                
+                // Получаем данные изображения
+                const imageData = ctx.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+                
+                // Распознаем QR-код
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                  inversionAttempts: "dontInvert",
+                });
+                
+                if (code) {
+                  console.log('QR-код обнаружен!', code.data);
+                  qrDetected = true;
+                  stopScanning();
+                  
+                  // Показываем кнопку запуска AR
+                  arHint.innerHTML = 'QR-код обнаружен!<br><button class="ar-launch-button" id="launch-ar-btn">Запустить AR</button>';
+                  
+                  // Добавляем обработчик для кнопки
+                  document.getElementById('launch-ar-btn').addEventListener('click', launchAR);
+                }
+                
+                // Сбрасываем счетчик ошибок при успешной обработке
+                errorCount = 0;
+              } catch (e) {
+                console.error('Ошибка при сканировании QR:', e);
+                errorCount++;
+                
+                // Если много ошибок подряд, перезапускаем сканирование
+                if (errorCount >= MAX_ERRORS) {
+                  console.warn('Слишком много ошибок, перезапуск сканирования...');
+                  stopScanning();
+                  setTimeout(scanQRCode, 1000);
+                }
+              }
+            }
+          }, 100); // Проверяем каждые 100 мс
+        }
+
+        // Обработчик видимости страницы
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            // Возобновляем сканирование при возвращении на страницу
+            if (selectedModel && !isScanning && !qrDetected) {
+              console.log('Возобновление сканирования после возвращения на страницу');
+              scanQRCode();
+            }
+          } else {
+            // Останавливаем сканирование при уходе со страницы
+            if (isScanning) {
+              console.log('Приостановка сканирования при уходе со страницы');
+              stopScanning();
+            }
+          }
         });
-        
-        // Обрабатываем ошибки
-        modelViewer.addEventListener('error', (event) => {
-          console.error('Ошибка модели:', event);
-          loading.textContent = 'Ошибка загрузки модели';
-        });
+
+        // Функция для запуска AR
+        async function launchAR() {
+          try {
+            if (modelViewer.canActivateAR) {
+              // Останавливаем сканирование
+              stopScanning();
+              
+              // Настраиваем AR для iOS
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+              if (isIOS) {
+                modelViewer.arScale = 'fixed';
+                modelViewer.arPlacement = 'floor';
+                modelViewer.arTracking = 'marker';
+                
+                // Обеспечиваем, чтобы быстрый доступ к AR в iOS работал корректно
+                modelViewer.setAttribute('quick-look-browsers', 'safari chrome');
+              }
+              
+              // Активируем AR с обработкой ошибок таймаута
+              const arPromise = modelViewer.activateAR();
+              const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Тайм-аут запуска AR')), 5000);
+              });
+              
+              await Promise.race([arPromise, timeoutPromise]);
+              arHint.classList.add('hidden');
+            } else {
+              arHint.textContent = 'AR не поддерживается на вашем устройстве';
+            }
+          } catch (error) {
+            console.error('Ошибка при запуске AR:', error);
+            arHint.textContent = 'Ошибка запуска AR: ' + error.message;
+            
+            // Добавляем кнопку для повторной попытки
+            setTimeout(() => {
+              arHint.innerHTML = `Ошибка запуска AR.<br><button class="ar-launch-button" id="retry-ar-btn">Попробовать снова</button>`;
+              document.getElementById('retry-ar-btn').addEventListener('click', launchAR);
+            }, 1500);
+          }
+        }
+
+        // Функция для смены модели
+        function switchModel(modelPath, iosModelPath) {
+          loading.classList.remove('hidden');
+          
+          // Если модель уже загружена ранее, устанавливаем флаг
+          const modelKey = modelPath + '|' + iosModelPath;
+          const isPreloaded = modelsLoaded[modelKey];
+          
+          modelViewer.src = modelPath;
+          if (iosModelPath) {
+            modelViewer.iosSrc = iosModelPath;
+          }
+          
+          // Если модель уже была загружена, скрываем загрузчик сразу
+          if (isPreloaded) {
+            loading.classList.add('hidden');
+          }
+          
+          // Запоминаем, что эта модель была загружена
+          modelsLoaded[modelKey] = true;
+        }
+
+        // Предзагрузка моделей
+        function preloadModels() {
+          // Создаем скрытые model-viewer для предзагрузки
+          const container = document.createElement('div');
+          container.style.position = 'absolute';
+          container.style.width = '1px';
+          container.style.height = '1px';
+          container.style.overflow = 'hidden';
+          container.style.opacity = '0';
+          container.style.pointerEvents = 'none';
+          document.body.appendChild(container);
+          
+          // Перебираем все модели и создаем для них предзагрузчики
+          carouselItems.forEach(item => {
+            const modelPath = item.dataset.model;
+            const iosModelPath = item.dataset.iosModel;
+            
+            // Создаем model-viewer для предзагрузки
+            const preloader = document.createElement('model-viewer');
+            preloader.src = modelPath;
+            if (iosModelPath) {
+              preloader.iosSrc = iosModelPath;
+            }
+            
+            // Обработчик загрузки
+            preloader.addEventListener('load', () => {
+              console.log('Предзагружена модель:', modelPath);
+              modelsLoaded[modelPath + '|' + iosModelPath] = true;
+            });
+            
+            container.appendChild(preloader);
+          });
+        }
+
+        // Проверка совместимости с AR
+        function checkARCompatibility() {
+          // Проверяем, поддерживается ли AR
+          if (!navigator.xr && typeof modelViewer.canActivateAR !== 'function') {
+            console.warn('WebXR не поддерживается в этом браузере');
+          }
+          
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          const isAndroid = /Android/i.test(navigator.userAgent);
+          
+          if (isIOS) {
+            console.log('Устройство iOS, используем Quick Look для AR');
+            // Настройки для iOS
+            modelViewer.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
+            modelViewer.setAttribute('quick-look-browsers', 'safari chrome');
+          } else if (isAndroid) {
+            console.log('Устройство Android, используем Scene Viewer для AR');
+            // Настройки для Android
+            modelViewer.setAttribute('ar-modes', 'webxr scene-viewer');
+          } else {
+            console.log('Устройство не поддерживает AR');
+            arHint.textContent = 'AR не поддерживается на вашем устройстве.';
+          }
+        }
+
+        // Инициализация
+        try {
+          // Проверяем совместимость с AR
+          checkARCompatibility();
+          
+          // Предзагружаем модели для ускорения переключения
+          preloadModels();
+          
+          // Запускаем камеру
+          await startCamera();
+          
+          // Обработчик выбора модели
+          carouselItems.forEach(item => {
+            item.addEventListener('click', () => {
+              carouselItems.forEach(i => i.classList.remove('active'));
+              item.classList.add('active');
+              
+              // Останавливаем текущее сканирование, если оно идет
+              if (isScanning) {
+                stopScanning();
+              }
+              
+              // Меняем модель
+              switchModel(item.dataset.model, item.dataset.iosModel);
+              
+              // Обновляем статус и подсказку
+              selectedModel = true;
+              qrDetected = false; // Сбрасываем статус обнаружения QR при смене модели
+              arHint.textContent = 'Наведите камеру на QR-код';
+              arHint.classList.remove('hidden');
+              
+              // Начинаем сканирование
+              scanQRCode();
+            });
+          });
+          
+          // Проверяем, является ли устройство мобильным
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (!isMobile) {
+            loading.textContent = 'AR доступен только на мобильных устройствах';
+            arHint.textContent = 'AR доступен только на мобильных устройствах';
+          } else {
+            loading.classList.add('hidden');
+          }
+          
+          // Обработка загрузки модели
+          modelViewer.addEventListener('load', () => {
+            loading.classList.add('hidden');
+          });
+          
+          // Обработка ошибок загрузки модели
+          modelViewer.addEventListener('error', (error) => {
+            console.error('Ошибка загрузки модели:', error);
+            loading.textContent = 'Ошибка загрузки модели. Попробуйте еще раз.';
+          });
+          
+          // Устанавливаем активную модель по умолчанию
+          if (carouselItems.length > 0) {
+            const firstItem = carouselItems[0];
+            switchModel(firstItem.dataset.model, firstItem.dataset.iosModel);
+          }
+          
+          // Обработка ошибок соединения
+          window.addEventListener('online', () => {
+            console.log('Соединение восстановлено');
+            // Перезагружаем текущую модель
+            if (selectedModel) {
+              const activeItem = document.querySelector('.carousel-item.active');
+              if (activeItem) {
+                switchModel(activeItem.dataset.model, activeItem.dataset.iosModel);
+              }
+            }
+          });
+          
+          window.addEventListener('offline', () => {
+            console.warn('Соединение потеряно');
+            arHint.textContent = 'Отсутствует подключение к интернету';
+            stopScanning();
+          });
+          
+        } catch (error) {
+          console.error('Ошибка инициализации:', error);
+          arHint.textContent = 'Ошибка инициализации: ' + error.message;
+        }
       });
     </script>
   </body>
