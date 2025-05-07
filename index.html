@@ -266,19 +266,23 @@
           }
         }
 
-        // Проверяем поддержку Quick Look
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) {
-          // Добавляем обработчик для Quick Look
-          carouselItems.forEach(item => {
-            const viewer = item.querySelector('model-viewer');
-            viewer.addEventListener('click', () => {
+        // Добавляем обработчик двойного нажатия для Quick Look
+        let lastTap = 0;
+        carouselItems.forEach(item => {
+          const viewer = item.querySelector('model-viewer');
+          viewer.addEventListener('click', (e) => {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+              // Двойное нажатие
               if (viewer.canActivateAR) {
                 viewer.activateAR();
               }
-            });
+              e.preventDefault();
+            }
+            lastTap = currentTime;
           });
-        }
+        });
 
         // Функция для быстрой смены модели
         function switchModel(model, iosModel) {
