@@ -56,14 +56,15 @@
 
       .carousel-item {
         flex: 0 0 auto;
-        width: 100px;
-        height: 100px;
-        border-radius: 8px;
+        width: 120px;
+        height: 120px;
+        border-radius: 12px;
         cursor: pointer;
         transition: all 0.3s ease;
         background: rgba(255, 255, 255, 0.1);
         border: 2px solid transparent;
         overflow: hidden;
+        position: relative;
       }
 
       .carousel-item model-viewer {
@@ -72,14 +73,29 @@
         --poster-color: transparent;
         --progress-bar-color: #007AFF;
         --progress-bar-height: 2px;
+        background-color: transparent;
       }
 
       .carousel-item:hover {
         transform: scale(1.05);
+        border-color: #007AFF;
       }
 
       .carousel-item.active {
         border-color: #007AFF;
+        box-shadow: 0 0 15px rgba(0, 122, 255, 0.3);
+      }
+
+      .carousel-item .model-name {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 5px;
+        font-size: 12px;
+        text-align: center;
       }
 
       .ar-prompt {
@@ -187,6 +203,7 @@
           scale-step="0.1"
           pinch-to-zoom
         ></model-viewer>
+        <div class="model-name">Стул</div>
       </div>
       <div class="carousel-item" data-model="models/volvo_240.glb" data-ios-model="models/volvo_240.usdz">
         <model-viewer 
@@ -212,6 +229,7 @@
           scale-step="0.1"
           pinch-to-zoom
         ></model-viewer>
+        <div class="model-name">Volvo 240</div>
       </div>
       <div class="carousel-item" data-model="models/apple.glb" data-ios-model="models/apple.usdz">
         <model-viewer 
@@ -237,6 +255,7 @@
           scale-step="0.1"
           pinch-to-zoom
         ></model-viewer>
+        <div class="model-name">Яблоко</div>
       </div>
     </div>
 
@@ -321,6 +340,33 @@
           });
         });
 
+        // Обработчик выбора модели
+        carouselItems.forEach(item => {
+          const viewer = item.querySelector('model-viewer');
+          item.addEventListener('click', () => {
+            // Убираем активный класс у всех элементов
+            carouselItems.forEach(i => i.classList.remove('active'));
+            // Добавляем активный класс выбранному элементу
+            item.classList.add('active');
+            
+            // Меняем модель
+            const model = item.dataset.model;
+            const iosModel = item.dataset.iosModel;
+            switchModel(model, iosModel);
+
+            // Проверяем, является ли устройство iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS && viewer.canActivateAR) {
+              // Настраиваем параметры для Quick Look
+              viewer.arScale = 'auto';
+              viewer.arPlacement = 'floor';
+              viewer.arTracking = 'marker';
+              // Активируем AR
+              viewer.activateAR();
+            }
+          });
+        });
+
         // Функция для быстрой смены модели
         function switchModel(model, iosModel) {
           modelViewer.src = model;
@@ -353,22 +399,6 @@
 
         // Запускаем камеру
         startCamera();
-
-        // Обработчик выбора модели
-        carouselItems.forEach(item => {
-          item.addEventListener('click', () => {
-            carouselItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            switchModel(item.dataset.model, item.dataset.iosModel);
-            
-            // Проверяем, является ли устройство iOS
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            if (isIOS) {
-              // На iOS запускаем AR сразу после выбора модели
-              startAR();
-            }
-          });
-        });
 
         // Проверяем, является ли устройство мобильным
         if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
