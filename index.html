@@ -3,8 +3,6 @@
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <script nomodule src="https://unpkg.com/@google/model-viewer/dist/model-viewer-legacy.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <head>
     <meta charset="UTF-8">
@@ -140,25 +138,6 @@
         pointer-events: none;
       }
 
-      .arjs-loader {
-        height: 100%;
-        width: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        background-color: rgba(0, 0, 0, 0.8);
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      
-      .arjs-loader div {
-        text-align: center;
-        font-size: 1.25em;
-        color: white;
-      }
-
       .ar-launch-button {
         background: #007AFF;
         color: white;
@@ -174,6 +153,45 @@
       .ar-launch-button:hover {
         background: #0056b3;
       }
+
+      /* Стили для AR кнопок */
+      .ar-button-model {
+        position: fixed;
+        bottom: 120px;
+        transform: translateX(-50%);
+        z-index: 1000;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        width: 80px;
+        height: 80px;
+        background-color: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      .ar-button-model:hover {
+        transform: translateX(-50%) scale(1.1);
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+
+      .ar-button-model.left {
+        left: calc(50% - 80px);
+      }
+
+      .ar-button-model.right {
+        left: calc(50% + 80px);
+      }
+
+      .ar-button-model model-viewer {
+        width: 100%;
+        height: 100%;
+        --poster-color: transparent;
+        --progress-bar-color: #007AFF;
+        --progress-bar-height: 2px;
+      }
     </style>
   </head>
   <body>
@@ -181,95 +199,6 @@
     <canvas id="qr-canvas"></canvas>
     <div class="loading" id="loading">Загрузка AR...</div>
     <div class="ar-hint" id="ar-hint">Выберите модель внизу экрана</div>
-
-    <!-- Загрузчик для AR.js -->
-    <div class="arjs-loader" id="arjs-loader">
-      <div>Загрузка AR, пожалуйста подождите...</div>
-    </div>
-
-    <!-- A-Frame сцена с AR.js -->
-    <a-scene
-      id="ar-scene"
-      embedded
-      arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
-      renderer="logarithmicDepthBuffer: true; precision: medium;"
-      vr-mode-ui="enabled: false"
-      style="display: none;"
-    >
-      <!-- Регистрируем компонент для обработки кликов -->
-      <script>
-        AFRAME.registerComponent('button-handler', {
-          init: function() {
-            const el = this.el;
-            el.addEventListener('click', function() {
-              const url = el.getAttribute('data-url');
-              if (url) {
-                window.open(url, '_blank');
-              }
-            });
-          }
-        });
-      </script>
-      
-      <!-- Маркер QR-кода (матричный маркер) -->
-      <a-marker type="barcode" value="0" id="qr-marker">
-        <!-- Основная 3D модель -->
-        <a-box position="0 0.5 0" color="red" opacity="0.8" scale="1 1 1"></a-box>
-        
-        <!-- Кнопка em.png (YouTube) -->
-        <a-entity position="-0.7 0 0">
-          <a-plane
-            src="em.png"
-            width="0.5"
-            height="0.5"
-            position="0 0.25 0"
-            rotation="-90 0 0"
-            button-handler
-            data-url="https://www.youtube.com/"
-            animation="property: rotation; to: -90 360 0; loop: true; dur: 10000; easing: linear"
-          ></a-plane>
-          <a-text
-            value="YouTube"
-            position="0 0 0.3"
-            align="center"
-            color="white"
-            scale="0.5 0.5 0.5"
-          ></a-text>
-        </a-entity>
-        
-        <!-- Кнопка site.png (Wikipedia) -->
-        <a-entity position="0.7 0 0">
-          <a-plane
-            src="site.png"
-            width="0.5"
-            height="0.5"
-            position="0 0.25 0"
-            rotation="-90 0 0"
-            button-handler
-            data-url="https://www.wikipedia.org/"
-            animation="property: rotation; to: -90 360 0; loop: true; dur: 10000; easing: linear"
-          ></a-plane>
-          <a-text
-            value="Wikipedia"
-            position="0 0 0.3"
-            align="center"
-            color="white"
-            scale="0.5 0.5 0.5"
-          ></a-text>
-        </a-entity>
-      </a-marker>
-      
-      <!-- Камера с курсором для обработки кликов -->
-      <a-entity camera>
-        <a-entity
-          cursor="fuse: false; rayOrigin: mouse;"
-          raycaster="objects: [button-handler]"
-          position="0 0 -1"
-          geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-          material="color: white; shader: flat"
-        ></a-entity>
-      </a-entity>
-    </a-scene>
 
     <div class="model-viewer-container">
       <model-viewer 
@@ -306,10 +235,6 @@
         ar-max-scale="10"
         ar-allow-scaling="true"
       >
-        <!-- AR кнопки как плоскости с текстурами -->
-        <button slot="ar-button" id="ar-button">Активировать AR</button>
-        
-        <!-- Здесь будут добавлены AR кнопки через JavaScript -->
       </model-viewer>
     </div>
 
@@ -334,9 +259,6 @@
         const cameraPreview = document.querySelector('#camera-preview');
         const qrCanvas = document.querySelector('#qr-canvas');
         const ctx = qrCanvas.getContext('2d');
-        const arScene = document.querySelector('#ar-scene');
-        const arjsLoader = document.querySelector('#arjs-loader');
-        const modelViewerContainer = document.querySelector('.model-viewer-container');
         
         let selectedModel = false;
         let qrDetected = false;
@@ -347,6 +269,24 @@
         let errorCount = 0;
         let modelsLoaded = {};
         let loadingTimeout = null;
+        let arButtonModels = []; // Массив для хранения моделей-кнопок
+        
+        // Информация о кнопках AR
+        const arButtons = [
+          {
+            model: "em(1).glb",
+            iosModel: "em(1).usdz",
+            action: "mailto:contact@example.com",
+            position: "left" // позиция кнопки (left или right)
+          },
+          {
+            model: "site(1).glb",
+            iosModel: "site(1).usdz",
+            action: "https://example.com",
+            position: "right" // позиция кнопки (left или right)
+          }
+        ];
+        
         const MAX_ERRORS = 3;
         const SCAN_TIMEOUT = 20000; // 20 секунд максимальное время сканирования
         const LOADING_TIMEOUT = 10000; // 10 секунд максимальное время отображения загрузки
@@ -457,46 +397,6 @@
           isScanning = false;
         }
 
-        // Функция для создания AR-кнопок
-        function createARButtons() {
-          // Создаем HTML для AR-кнопок
-          const emButtonHTML = document.createElement('div');
-          emButtonHTML.id = 'em-ar-button';
-          emButtonHTML.style.position = 'absolute';
-          emButtonHTML.style.left = '-0.5';
-          emButtonHTML.style.bottom = '-0.5';
-          emButtonHTML.style.width = '0.3';
-          emButtonHTML.style.height = '0.3';
-          emButtonHTML.style.backgroundImage = 'url(em.png)';
-          emButtonHTML.style.backgroundSize = 'contain';
-          emButtonHTML.style.backgroundRepeat = 'no-repeat';
-          emButtonHTML.style.cursor = 'pointer';
-          emButtonHTML.setAttribute('slot', 'ar-overlay');
-          emButtonHTML.addEventListener('click', () => {
-            window.open('https://www.youtube.com/', '_blank');
-          });
-
-          const siteButtonHTML = document.createElement('div');
-          siteButtonHTML.id = 'site-ar-button';
-          siteButtonHTML.style.position = 'absolute';
-          siteButtonHTML.style.right = '-0.5';
-          siteButtonHTML.style.bottom = '-0.5';
-          siteButtonHTML.style.width = '0.3';
-          siteButtonHTML.style.height = '0.3';
-          siteButtonHTML.style.backgroundImage = 'url(site.png)';
-          siteButtonHTML.style.backgroundSize = 'contain';
-          siteButtonHTML.style.backgroundRepeat = 'no-repeat';
-          siteButtonHTML.style.cursor = 'pointer';
-          siteButtonHTML.setAttribute('slot', 'ar-overlay');
-          siteButtonHTML.addEventListener('click', () => {
-            window.open('https://www.wikipedia.org/', '_blank');
-          });
-
-          // Добавляем кнопки в model-viewer
-          modelViewer.appendChild(emButtonHTML);
-          modelViewer.appendChild(siteButtonHTML);
-        }
-
         // Функция для сканирования QR-кода
         function scanQRCode() {
           if (isScanning || !selectedModel) return;
@@ -554,11 +454,6 @@
                   
                   // Добавляем обработчик для кнопки
                   document.getElementById('launch-ar-btn').addEventListener('click', launchAR);
-                } else if (qrDetected) {
-                  // QR-код был обнаружен ранее, но теперь потерян
-                  console.log('QR-код потерян');
-                  qrDetected = false;
-                  arHint.textContent = 'Наведите камеру на QR-код';
                 }
                 
                 // Сбрасываем счетчик ошибок при успешной обработке
@@ -598,33 +493,6 @@
         // Функция для запуска AR
         async function launchAR() {
           try {
-            // Проверяем, поддерживается ли AR.js
-            const marker = document.querySelector('#qr-marker');
-            if (marker) {
-              // Останавливаем сканирование
-              stopScanning();
-              
-              showLoading('Запуск AR...');
-              
-              // Скрываем model-viewer и показываем AR.js сцену
-              modelViewerContainer.style.display = 'none';
-              arScene.style.display = 'block';
-              
-              // Скрываем подсказку
-              arHint.classList.add('hidden');
-              hideLoading();
-              
-              // Обработчик для возврата из AR режима
-              document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape') {
-                  exitAR();
-                }
-              });
-              
-              return;
-            }
-            
-            // Если AR.js не поддерживается, пробуем использовать model-viewer
             if (modelViewer.canActivateAR) {
               // Останавливаем сканирование
               stopScanning();
@@ -679,6 +547,8 @@
                     if (tryIOSQuickLookAR(iosModelUrl)) {
                       hideLoading();
                       arHint.classList.add('hidden');
+                      // Показываем кнопки AR
+                      showARButtons();
                       return; // Выходим, так как AR запускается другим способом
                     }
                   } catch (e) {
@@ -696,6 +566,9 @@
               await Promise.race([arPromise, timeoutPromise]);
               arHint.classList.add('hidden');
               hideLoading();
+              
+              // Показываем кнопки AR после запуска AR
+              showARButtons();
             } else {
               arHint.textContent = 'AR не поддерживается на вашем устройстве';
               hideLoading();
@@ -713,13 +586,66 @@
           }
         }
 
-        // Функция для выхода из AR режима
-        function exitAR() {
-          arScene.style.display = 'none';
-          modelViewerContainer.style.display = 'block';
-          arHint.textContent = 'Наведите камеру на QR-код';
+        // Функция для отображения AR кнопок
+        function showARButtons() {
+          // Очищаем предыдущие кнопки
+          arButtonModels.forEach(button => {
+            if (button.parentNode) {
+              button.parentNode.removeChild(button);
+            }
+          });
+          arButtonModels = [];
+          
+          // Создаем контейнеры для кнопок из массива arButtons
+          arButtons.forEach((buttonInfo) => {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = `ar-button-model ${buttonInfo.position}`;
+            
+            // Создаем модель-кнопку
+            const buttonModelViewer = document.createElement('model-viewer');
+            buttonModelViewer.src = buttonInfo.model;
+            buttonModelViewer.iosSrc = buttonInfo.iosModel;
+            buttonModelViewer.setAttribute('camera-controls', 'false');
+            buttonModelViewer.setAttribute('ar', 'false');
+            buttonModelViewer.setAttribute('auto-rotate', 'true');
+            buttonModelViewer.setAttribute('rotation-per-second', '30deg');
+            
+            // Добавляем обработчик клика
+            buttonContainer.addEventListener('click', () => {
+              const action = buttonInfo.action;
+              if (action) {
+                if (action.startsWith('http')) {
+                  window.open(action, '_blank');
+                } else if (action.startsWith('mailto:')) {
+                  window.location.href = action;
+                }
+              }
+            });
+            
+            // Добавляем модель в контейнер
+            buttonContainer.appendChild(buttonModelViewer);
+            document.body.appendChild(buttonContainer);
+            arButtonModels.push(buttonContainer);
+          });
+          
+          // Обновляем подсказку
+          arHint.textContent = 'Нажмите на кнопки для выполнения действий';
           arHint.classList.remove('hidden');
-          scanQRCode();
+          
+          // Скрываем подсказку через 5 секунд
+          setTimeout(() => {
+            arHint.classList.add('hidden');
+          }, 5000);
+        }
+
+        // Функция для скрытия AR кнопок
+        function hideARButtons() {
+          arButtonModels.forEach(button => {
+            if (button.parentNode) {
+              button.parentNode.removeChild(button);
+            }
+          });
+          arButtonModels = [];
         }
 
         // Функция для запуска AR в iOS с поддержкой масштабирования через специальную ссылку
@@ -790,6 +716,13 @@
           
           // Запоминаем, что эта модель была загружена
           modelsLoaded[modelKey] = true;
+          
+          // Если QR-код уже обнаружен, показываем кнопку запуска AR
+          if (qrDetected) {
+            arHint.innerHTML = 'QR-код обнаружен!<br><button class="ar-launch-button" id="launch-ar-btn">Запустить AR</button>';
+            document.getElementById('launch-ar-btn').addEventListener('click', launchAR);
+            arHint.classList.remove('hidden');
+          }
         }
 
         // Предзагрузка моделей
@@ -829,9 +762,35 @@
             
             container.appendChild(preloader);
           });
+          
+          // Предзагружаем модели кнопок
+          arButtons.forEach(buttonInfo => {
+            const modelPath = buttonInfo.model;
+            let iosModelPath = buttonInfo.iosModel;
+            
+            // Добавляем параметры масштабирования для iOS
+            if (iosModelPath && iosModelPath.indexOf('#') === -1) {
+              iosModelPath += '#allowsContentScaling=1&resizesModel=1&preservesOriginalScale=0&autoScales=1&scaleType=dynamic';
+            }
+            
+            // Создаем model-viewer для предзагрузки
+            const preloader = document.createElement('model-viewer');
+            preloader.src = modelPath;
+            if (iosModelPath) {
+              preloader.iosSrc = iosModelPath;
+            }
+            
+            // Обработчик загрузки
+            preloader.addEventListener('load', () => {
+              console.log('Предзагружена модель кнопки:', modelPath);
+              modelsLoaded[modelPath + '|' + iosModelPath] = true;
+            });
+            
+            container.appendChild(preloader);
+          });
         }
 
-        // Функция для проверки совместимости с AR
+        // Проверка совместимости с AR
         function checkARCompatibility() {
           // Проверяем, поддерживается ли AR
           if (!navigator.xr && typeof modelViewer.canActivateAR !== 'function') {
@@ -856,63 +815,6 @@
           }
         }
 
-        // Функция для инициализации AR.js сцены
-        function initARScene() {
-          // Скрываем AR.js сцену при загрузке
-          arScene.style.display = 'none';
-          
-          // Обработчики событий для маркера
-          const marker = document.querySelector('#qr-marker');
-          
-          marker.addEventListener('markerFound', function() {
-            console.log('QR-код обнаружен в AR.js!');
-            arjsLoader.style.display = 'none';
-          });
-          
-          marker.addEventListener('markerLost', function() {
-            console.log('QR-код потерян в AR.js');
-          });
-          
-          // Скрываем загрузчик AR.js, когда сцена загружена
-          const scene = document.querySelector('a-scene');
-          
-          if (scene.hasLoaded) {
-            arjsLoader.style.display = 'none';
-          } else {
-            scene.addEventListener('loaded', function() {
-              arjsLoader.style.display = 'none';
-            });
-          }
-          
-          // Добавляем кнопку для возврата из AR режима
-          const backButton = document.createElement('button');
-          backButton.textContent = 'Вернуться';
-          backButton.style.position = 'fixed';
-          backButton.style.top = '10px';
-          backButton.style.right = '10px';
-          backButton.style.zIndex = '10000';
-          backButton.style.padding = '10px 20px';
-          backButton.style.backgroundColor = '#007AFF';
-          backButton.style.color = 'white';
-          backButton.style.border = 'none';
-          backButton.style.borderRadius = '5px';
-          backButton.style.display = 'none';
-          
-          backButton.addEventListener('click', exitAR);
-          
-          document.body.appendChild(backButton);
-          
-          // Показываем кнопку возврата при входе в AR режим
-          scene.addEventListener('enter-vr', function() {
-            backButton.style.display = 'block';
-          });
-          
-          // Скрываем кнопку возврата при выходе из AR режима
-          scene.addEventListener('exit-vr', function() {
-            backButton.style.display = 'none';
-          });
-        }
-
         // Инициализация
         try {
           // Скрываем загрузчик через таймаут, если он не скроется сам
@@ -932,9 +834,6 @@
           // Запускаем камеру
           await startCamera();
           
-          // Инициализируем AR.js сцену
-          initARScene();
-          
           // Обработчик выбора модели
           carouselItems.forEach(item => {
             item.addEventListener('click', () => {
@@ -946,17 +845,29 @@
                 stopScanning();
               }
               
+              // Скрываем AR кнопки при смене модели
+              hideARButtons();
+              
               // Меняем модель
               switchModel(item.dataset.model, item.dataset.iosModel);
               
               // Обновляем статус и подсказку
               selectedModel = true;
-              qrDetected = false; // Сбрасываем статус обнаружения QR при смене модели
-              arHint.textContent = 'Наведите камеру на QR-код';
-              arHint.classList.remove('hidden');
               
-              // Начинаем сканирование
-              scanQRCode();
+              if (qrDetected) {
+                // Если QR-код уже обнаружен
+                arHint.innerHTML = 'QR-код обнаружен!<br><button class="ar-launch-button" id="launch-ar-btn">Запустить AR</button>';
+                document.getElementById('launch-ar-btn').addEventListener('click', launchAR);
+                arHint.classList.remove('hidden');
+              } else {
+                // Если QR-код еще не обнаружен
+                qrDetected = false; // Сбрасываем статус обнаружения QR при смене модели
+                arHint.textContent = 'Наведите камеру на QR-код';
+                arHint.classList.remove('hidden');
+                
+                // Начинаем сканирование
+                scanQRCode();
+              }
             });
           });
           
@@ -983,8 +894,14 @@
             setTimeout(hideLoading, 3000);
           });
           
-          // Добавляем обработчики для AR кнопок
-          createARButtons();
+          // Обработка изменения статуса AR
+          modelViewer.addEventListener('ar-status', (event) => {
+            console.log('AR статус изменился:', event.detail.status);
+            if (event.detail.status === 'not-presenting') {
+              // AR режим закрыт, скрываем кнопки AR
+              hideARButtons();
+            }
+          });
           
           // Устанавливаем активную модель по умолчанию
           if (carouselItems.length > 0) {
