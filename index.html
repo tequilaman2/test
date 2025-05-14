@@ -501,6 +501,11 @@
               
               // Настраиваем AR для iOS
               const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+              const isAndroid = /Android/i.test(navigator.userAgent);
+              
+              // Получаем активную модель
+              const activeItem = document.querySelector('.carousel-item.active');
+              
               if (isIOS) {
                 modelViewer.arScale = 'fixed';
                 modelViewer.arPlacement = 'floor';
@@ -511,7 +516,6 @@
                 modelViewer.setAttribute('quick-look-scale', 'resizable');
                 
                 // Добавляем параметры масштабирования в URL для модели
-                const activeItem = document.querySelector('.carousel-item.active');
                 if (activeItem && activeItem.dataset.iosModel) {
                   // Добавляем параметры масштабирования в URL USDZ-файла
                   let iosModelUrl = activeItem.dataset.iosModel;
@@ -525,49 +529,51 @@
                   console.log('Настроенный URL для iOS AR:', iosModelUrl);
                   modelViewer.iosSrc = iosModelUrl;
                   
-                  // Устанавливаем параметры масштабирования напрямую
-                  try {
-                    modelViewer.quickLookBrowsers = 'safari chrome';
-                    modelViewer.canScale = true;
-                    modelViewer.arScale = 'auto';
-                    modelViewer.arMinScale = 0.1;
-                    modelViewer.arMaxScale = 10;
-                    modelViewer.quickLookScale = 'resizable';
-                    
-                    // Устанавливаем дополнительные метатеги для iOS
-                    const metaScale = document.querySelector('meta[name="apple-mobile-web-app-capable"]');
-                    if (!metaScale) {
-                      const meta = document.createElement('meta');
-                      meta.name = 'apple-mobile-web-app-capable';
-                      meta.content = 'yes';
-                      document.head.appendChild(meta);
-                    }
-                    
-                    // Пробуем альтернативный метод запуска AR с использованием специальной ссылки
-                    if (tryIOSQuickLookAR(iosModelUrl)) {
-                      hideLoading();
-                      arHint.classList.add('hidden');
-                      // Показываем кнопки AR
-                      showARButtons();
-                      return; // Выходим, так как AR запускается другим способом
-                    }
-                  } catch (e) {
-                    console.warn('Ошибка установки параметров масштабирования:', e);
+                  // Всегда пытаемся использовать tryIOSQuickLookAR вместо activateAR
+                  if (tryIOSQuickLookAR(iosModelUrl)) {
+                    hideLoading();
+                    arHint.classList.add('hidden');
+                    // Показываем кнопки AR
+                    showARButtons();
+                    return; // Выходим, так как AR запускается другим способом
                   }
                 }
+              } else if (isAndroid) {
+                // Для Android запускаем Scene Viewer без запроса разрешений
+                try {
+                  const modelUrl = activeItem ? activeItem.dataset.model : modelViewer.src;
+                  const modelPath = new URL(modelUrl, window.location.href).href;
+                  
+                  // Создаем Scene Viewer URL
+                  const sceneViewerUrl = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelPath)}&mode=ar_preferred&title=3D%20Model#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=https://developers.google.com/ar;end;`;
+                  
+                  // Создаем и кликаем по ссылке
+                  const link = document.createElement('a');
+                  link.href = sceneViewerUrl;
+                  link.style.display = 'none';
+                  document.body.appendChild(link);
+                  link.click();
+                  
+                  // Удаляем ссылку
+                  setTimeout(() => {
+                    if (link.parentNode) {
+                      link.parentNode.removeChild(link);
+                    }
+                  }, 2000);
+                  
+                  hideLoading();
+                  arHint.classList.add('hidden');
+                  showARButtons();
+                  return; // Выходим, AR запускается через Scene Viewer
+                } catch (e) {
+                  console.warn('Ошибка запуска Scene Viewer:', e);
+                }
               }
-              
-              // Активируем AR с обработкой ошибок таймаута
-              const arPromise = modelViewer.activateAR();
-              const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Тайм-аут запуска AR')), 5000);
-              });
-              
-              await Promise.race([arPromise, timeoutPromise]);
-              arHint.classList.add('hidden');
+
+              // Если все специальные методы запуска AR не сработали, показываем альтернативный интерфейс
+              // вместо вызова activateAR(), который показывает диалог с кнопками Allow/Deny
               hideLoading();
-              
-              // Показываем кнопки AR после запуска AR
+              arHint.classList.add('hidden');
               showARButtons();
             } else {
               arHint.textContent = 'AR не поддерживается на вашем устройстве';
